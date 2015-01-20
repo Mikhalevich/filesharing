@@ -1,59 +1,87 @@
 <!DOCTYPE html>
 <html>
-<head>
-  	<title>{{.Title}}</title>
-	<link rel="shortcut icon" type="image/x-icon" href="res/file-sharing.jpg" />
-	<link href="res/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
-	<link href="res/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-	<link href="res/dropzone/css/dropzone.css" rel="stylesheet">
-	<script type="text/javascript" src="res/jquery/js/jquery.min.js"></script>
-	<script type="text/javascript" src="res/bootstrap/js/bootstrap.min.js"></script>
-	<script type="text/javascript" src="res/dropzone/dropzone.min.js"></script>
-</head>
-<body>
-	<div class="page-header">
-		<h3 class="col-md-offset-4">Sharing!!!</h3>
-	</div>
-	<div class="row">
-		<div class="col-md-10 col-md-offset-1">
-	   		<form class="form dropzone" action="/upload/" method="post" enctype="multipart/form-data">
-				<div class="form-group">
-					<table class="table table-bordered">
-						<thead>
-							<tr>
-								<th>#</th>
-								<th>Name</th>
-								<th>Size</th>
-							</tr>
-						</thead>
-						<tbody>					
-						{{range $index, $fileInfo := .FileInfoList}}
-							<tr>
-								<td>{{increment $index}}</td>
-								<td><a href='{{$fileInfo.Path}}'>{{$fileInfo.Name}}</a></td>
-								<td>{{$fileInfo.Size}}</td>
-							</tr>
-						{{end}}						
-						</tbody>
-					</table>
+	<head>
+		<title>{{.Title}}</title>
+		<link rel="shortcut icon" type="image/x-icon" href="res/file-sharing.jpg" />
+		<link href="res/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
+		<link href="res/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+		<link href="res/dropzone/css/basic.css" rel="stylesheet">
+		<link href="res/dropzone/css/dropzone.css" rel="stylesheet">
+		<script type="text/javascript" src="res/jquery/js/jquery.min.js"></script>
+		<script type="text/javascript" src="res/bootstrap/js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="res/dropzone/dropzone.js"></script>
+	</head>
+	<body>
+		<div class="row">
+			<div class="col-md-10 col-md-offset-1">
+				<div class="page-header">
+					<h3>{{.Title}} >
+						<button id="showUploadingBoxBtn" type="submit" class="btn btn-primary">File</button>
+					</h3>
 				</div>
-				<div class="form-group">
-					<input type="file" name="file">
-				</div>
-				<div class="form-group">
-					<button type="submit" id="submitBtn" data-loading-text="Uploading..." class="btn btn-primary" autocomplete="off">Upload</button>
-					<button type="reset" id="resetBtn" class="btn btn-warning">Cancel</button>
-					<script>
-					    $('#submitBtn').on('click', function () {
-    						var $btn = $(this).button('loading')
-  						})
-						$('#resetBtn').on('click', function () {
-    						document.location.reload(true);
-  						})
-					</script>
-				</div>
-			</form>
+				<form class="form">
+					<div class="form-group">
+						<table class="table table-bordered">
+							<thead>
+								<tr>
+									<th>#</th>
+									<th>Name</th>
+									<th>Size</th>
+								</tr>
+							</thead>
+							<tbody>
+							{{range $index, $fileInfo := .FileInfoList}}
+								<tr>
+									<td>{{increment $index}}</td>
+									<td><a href='{{$fileInfo.Path}}'>{{$fileInfo.Name}}</a></td>
+									<td>{{$fileInfo.Size}}</td>
+								</tr>
+							{{end}}
+							</tbody>
+						</table>
+					</div>
+				</form>
+			</div>
 		</div>
-	</div>
-</body>
+
+		<div id="uploadingBox" class="modal fade">
+		    <div class="modal-dialog">
+		        <div class="panel modal-content">
+		            <div class="panel-heading modal-header">
+		                <button id="closeBtn" class="close col-sm-1" aria-hidden="true">&times;</button>
+		                <h4 class="modal-title">{{.Title}}</h4>
+		            </div>
+		            <div class="panel-body modal-body">
+						<form action="/upload/" id="dropzone" class="dropzone" method="post" enctype="multipart/form-data"></form>
+		            </div>
+					<div class="modal-footer">
+						<button id="okBtn" type="submit" class="btn btn-success col-md-offset-6">Ok</button>
+					</div>
+		        </div>
+		    </div>
+		</div>
+
+		<script>
+			Dropzone.options.dropzone = {
+				paramName: "file", // The name that will be used to transfer the file
+				maxFilesize: 10000, // MB
+				addRemoveLinks: true,
+				dictCancelUpload: "Cancel",
+				removedfile: function(file){alert('Not implemented');}
+			};
+
+		    $('#showUploadingBoxBtn').on('click', function () {
+				$('#uploadingBox').modal('show');
+			})
+
+			var onCloseUploadingBox = function() {
+				$('#uploadingBox').modal('hide');
+
+				location.reload();
+			};
+
+			$('#closeBtn').on('click', onCloseUploadingBox);
+			$('#okBtn').on('click', onCloseUploadingBox);
+		</script>
+	</body>
 </html>
