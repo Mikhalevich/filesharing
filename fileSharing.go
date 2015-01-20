@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	host       = flag.String("host", "0.0.0.0:8080", "listening port and hostname")
+	host       = flag.String("host", "127.0.0.1:8080", "listening port and hostname")
 	help       = flag.Bool("h", false, "show this help")
 	storageDir = "storage"
 	title      = "File sharing"
