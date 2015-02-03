@@ -59,7 +59,6 @@ func (fi *FileInfo) Size() string {
 type FileInfoList []FileInfo
 
 func (fil FileInfoList) Len() int {
-	log.Printf("len %d", len(fil))
 	return len(fil)
 }
 

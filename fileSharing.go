@@ -108,14 +108,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", 303)
 }
 
-// http.DefaultServeMux wrapper that implements logging.
-func Log(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s %s %s", r.RemoteAddr, r.Method, r.URL)
-		handler.ServeHTTP(w, r)
-	})
-}
-
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	fiList := fileInfo.ListDir("storage")
 	if fiList == nil {
@@ -158,7 +150,7 @@ func main() {
 
 	go fileInfo.CleanDir("storage")
 
-	err := http.ListenAndServe(*host, Log(http.DefaultServeMux))
+	err := http.ListenAndServe(*host, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
