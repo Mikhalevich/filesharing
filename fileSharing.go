@@ -17,15 +17,14 @@ import (
 
 var (
 	host       = flag.String("host", "127.0.0.1:8080", "listening port and hostname")
-	help       = flag.Bool("h", false, "show this help")
 	storageDir = "storage"
 	title      = "File sharing"
 )
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: fileSharing -host=[host]")
-	flag.PrintDefaults()
-	os.Exit(2)
+	log.Println("usage: fileSharing -host=[host], default host is " + *host)
+
+	os.Exit(1)
 }
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
@@ -131,13 +130,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Usage = usage
-
 	flag.Parse()
-
-	nargs := flag.NArg()
-	if *help || nargs > 0 {
-		usage()
-	}
 
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 
@@ -150,8 +143,10 @@ func main() {
 
 	go fileInfo.CleanDir("storage")
 
+	log.Println("Running at " + *host)
+
 	err := http.ListenAndServe(*host, nil)
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		log.Println(err.Error())
 	}
 }
