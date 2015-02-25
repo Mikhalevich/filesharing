@@ -63,7 +63,13 @@
 		    </div>
 		</div>
 
-		<script>			
+		<script>
+            // disable confirmation dialog
+            Dropzone.confirm = function(question, accepted, rejected) {
+                   return accepted()
+            }
+            
+            // setup dropzone
 			Dropzone.options.dropzone = {
 				paramName: "file", // The name that will be used to transfer the file
 				maxFilesize: 10000, // MB
@@ -80,7 +86,7 @@
 					this.on("removedfile", function(file){
                         removeFileRequest(file.name)
                     })
-  				}
+  				},               
 			}
 			
 			var removeFileRequest = function(fileName) {
