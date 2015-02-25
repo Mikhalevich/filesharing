@@ -16,7 +16,7 @@
 			<div class="col-md-10 col-md-offset-1">
 				<div class="page-header">
 					<h3>{{.Title}} >
-						<!--<button id="showUploadingBoxBtn" type="submit" class="btn btn-primary">File</button>-->
+						<button id="showTextSharingBoxBtn" type="submit" class="btn btn-primary">Text</button>
 					</h3>
 				</div>
 				<form action="/upload/" id="dropzone" class="dropzone" method="post" enctype="multipart/form-data">
@@ -46,7 +46,7 @@
 			</div>
 		</div>
 
-		<div id="uploadingBox" class="modal fade">
+		<div id="textSharingBox" class="modal fade">
 		    <div class="modal-dialog">
 		        <div class="panel modal-content">
 		            <div class="panel-heading modal-header">
@@ -54,7 +54,7 @@
 		                <h4 class="modal-title">{{.Title}}</h4>
 		            </div>
 		            <div class="panel-body modal-body">
-						<form action="/upload/" id="dropzone" class="dropzone" method="post" enctype="multipart/form-data"></form>
+						<h1>Coming soon!!!<h1>
 		            </div>
 					<div class="modal-footer">
 						<button id="okBtn" type="submit" class="btn btn-success col-md-offset-6">Ok</button>
@@ -104,14 +104,12 @@
 				})
 			}			
 			
-		    $('#showUploadingBoxBtn').on('click', function () {
-				$('#uploadingBox').modal('show')
+		    $('#showTextSharingBoxBtn').on('click', function () {
+				$('#textSharingBox').modal('show')
 			})
 
 			var onCloseUploadingBox = function() {
-				$('#uploadingBox').modal('hide')
-
-				location.reload();
+				$('#textSharingBox').modal('hide')
 			}
 
 			$('#closeBtn').on('click', onCloseUploadingBox)
