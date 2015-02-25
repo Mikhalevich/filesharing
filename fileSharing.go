@@ -42,11 +42,17 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
+
+		return
+	}
+
 	mr, err := r.MultipartReader()
 	if err != nil {
 		log.Printf(err.Error())
 
-		http.Redirect(w, r, "/", 303)
+		http.Error(w, "reading body: "+err.Error(), http.StatusInternalServerError)
 
 		return
 	}
@@ -58,7 +64,10 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err != nil {
+			log.Printf(err.Error())
+
 			http.Error(w, "reading body: "+err.Error(), http.StatusInternalServerError)
+
 			return
 		}
 
@@ -85,26 +94,35 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		buf := bytes.NewBuffer(make([]byte, 0))
 		if _, err = io.Copy(buf, part); err != nil {
+			log.Printf(err.Error())
+
 			http.Error(w, "copying: "+err.Error(), http.StatusInternalServerError)
+
 			return
 		}
 
 		f, err := os.Create(path.Join(storageDir, fileName))
 		if err != nil {
+			log.Printf(err.Error())
+
 			http.Error(w, "opening file: "+err.Error(), http.StatusInternalServerError)
+
 			return
 		}
 		defer f.Close()
 
 		if _, err = buf.WriteTo(f); err != nil {
+			log.Printf(err.Error())
+
 			http.Error(w, "writing: "+err.Error(), http.StatusInternalServerError)
+
 			return
 		}
 
 		break
 	}
 
-	http.Redirect(w, r, "/", 303)
+	w.WriteHeader(http.StatusOK)
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -128,6 +146,37 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, page)
 }
 
+func removeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
+
+		return
+	}
+
+	fileName := r.FormValue("fileName")
+	if len(fileName) == 0 {
+		err := "file name was not set"
+
+		http.Error(w, err, http.StatusBadRequest)
+
+		log.Println(err)
+	}
+
+	fiList := fileInfo.ListDir("storage")
+	if fiList == nil {
+		return
+	}
+
+	isExist := fiList.IsExist(fileName)
+	if !isExist {
+		return
+	}
+
+	os.Remove("storage/" + fileName)
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func main() {
 	flag.Usage = usage
 	flag.Parse()
@@ -136,6 +185,7 @@ func main() {
 
 	http.HandleFunc("/", makeHandler(rootHandler))
 	http.HandleFunc("/upload/", makeHandler(uploadHandler))
+	http.HandleFunc("/remove/", makeHandler(removeHandler))
 
 	// static resourses
 	http.Handle("/res/", http.StripPrefix("/res/", http.FileServer(http.Dir("res"))))

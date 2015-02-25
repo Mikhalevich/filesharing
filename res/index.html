@@ -24,17 +24,19 @@
 						<table class="table table-bordered">
 							<thead>
 								<tr>
-									<th>#</th>
-									<th>Name</th>
-									<th>Size</th>
+									<th class="col-md-1">#</th>
+									<th class="col-md-8">Name</th>
+									<th class="col-md-2">Size</th>
+                                   <th class="col-md-1">Action</th>
 								</tr>
 							</thead>
 							<tbody>
 							{{range $index, $fileInfo := .FileInfoList}}
 								<tr>
 									<td>{{increment $index}}</td>
-									<td><a href='{{$fileInfo.Path}}'>{{$fileInfo.Name}}</a></td>
+									<td id="name"><a href='{{$fileInfo.Path}}'>{{$fileInfo.Name}}</a></td>
 									<td>{{$fileInfo.Size}}</td>
+                                   <td><button id="removeBtn">&times;</button></td>
 								</tr>
 							{{end}}
 							</tbody>
@@ -61,27 +63,55 @@
 		    </div>
 		</div>
 
-		<script>
+		<script>			
 			Dropzone.options.dropzone = {
 				paramName: "file", // The name that will be used to transfer the file
 				maxFilesize: 10000, // MB
 				addRemoveLinks: true,
 				dictCancelUpload: "Cancel",
-				removedfile: function(file){alert('Not implemented');}
-			};
-
+				dictRemoveFile: "Remove",
+				init: function() {
+					var self = this
+					
+    				this.on("canceled", function(file) {
+                       		self.removeFile(file)
+						})
+						
+					this.on("removedfile", function(file){
+                        removeFileRequest(file.name)
+                    })
+  				}
+			}
+			
+			var removeFileRequest = function(fileName) {
+				$.ajax({
+  					type: "POST",
+  					url: "/remove/",
+  					data: "fileName=" + fileName,
+                    success: function() {
+                        location.reload();
+                    }
+				})
+			}			
+			
 		    $('#showUploadingBoxBtn').on('click', function () {
-				$('#uploadingBox').modal('show');
+				$('#uploadingBox').modal('show')
 			})
 
 			var onCloseUploadingBox = function() {
-				$('#uploadingBox').modal('hide');
+				$('#uploadingBox').modal('hide')
 
 				location.reload();
-			};
+			}
 
-			$('#closeBtn').on('click', onCloseUploadingBox);
-			$('#okBtn').on('click', onCloseUploadingBox);
+			$('#closeBtn').on('click', onCloseUploadingBox)
+			$('#okBtn').on('click', onCloseUploadingBox)
+            
+            $('#removeBtn').on('click', function(event) {
+                var fileName = $(event.target).parent().siblings("#name").text()
+                
+                removeFileRequest(fileName)
+            })
 		</script>
 	</body>
 </html>
