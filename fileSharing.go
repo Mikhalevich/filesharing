@@ -18,7 +18,7 @@ import (
 var (
 	host       = flag.String("host", "127.0.0.1:8080", "listening port and hostname")
 	storageDir = "storage"
-	title      = "File sharing"
+	title      = "Duplo"
 )
 
 func usage() {
