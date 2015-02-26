@@ -127,9 +127,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	fiList := fileInfo.ListDir("storage")
-	if fiList == nil {
-		return
-	}
 
 	funcs := template.FuncMap{"increment": func(i int) int { i++; return i }}
 
@@ -157,24 +154,36 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 	if len(fileName) == 0 {
 		err := "file name was not set"
 
+		log.Println(err)
+
 		http.Error(w, err, http.StatusBadRequest)
 
-		log.Println(err)
+		return
+
 	}
 
 	fiList := fileInfo.ListDir("storage")
-	if fiList == nil {
-		return
-	}
 
 	isExist := fiList.IsExist(fileName)
 	if !isExist {
+		err := fileName + " doesn't exist"
+
+		log.Println(err)
+
+		http.Error(w, err, http.StatusBadRequest)
+
 		return
 	}
 
-	os.Remove("storage/" + fileName)
+	if err := os.Remove("storage/" + fileName); err != nil {
+		log.Println(err)
 
-	w.WriteHeader(http.StatusOK)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	w.Write(http.StatusOK)
 }
 
 func main() {

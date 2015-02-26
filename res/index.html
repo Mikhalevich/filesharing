@@ -68,7 +68,7 @@
             Dropzone.confirm = function(question, accepted, rejected) {
                    return accepted()
             }
-            
+
             // setup dropzone
 			Dropzone.options.dropzone = {
 				paramName: "file", // The name that will be used to transfer the file
@@ -78,32 +78,35 @@
 				dictRemoveFile: "Remove",
 				init: function() {
 					var self = this
-					
+
     				this.on("canceled", function(file) {
                        	self.removeFile(file)
 					})
-						
+
 					this.on("removedfile", function(file) {
                         removeFileRequest(file.name)
                     })
-                    
+
                     this.on("queuecomplete", function(){
-                        location.reload()	
-                    })                    
-  				},               
+                        location.reload()
+                    })
+  				},
 			}
-			
+
 			var removeFileRequest = function(fileName) {
 				$.ajax({
   					type: "POST",
   					url: "/remove/",
-  					data: "fileName=" + fileName,
+  					data: {"fileName": fileName},
                     success: function() {
-                        location.reload();
+                        location.reload()
+                    },
+                    error: function() {
+                        location.reload()
                     }
 				})
-			}			
-			
+			}
+
 		    $('#showTextSharingBoxBtn').on('click', function () {
 				$('#textSharingBox').modal('show')
 			})
@@ -114,10 +117,10 @@
 
 			$('#closeBtn').on('click', onCloseUploadingBox)
 			$('#okBtn').on('click', onCloseUploadingBox)
-            
+
             $('#removeBtn').on('click', function(event) {
                 var fileName = $(event.target).parent().siblings("#name").text()
-                
+
                 removeFileRequest(fileName)
             })
 		</script>
