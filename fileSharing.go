@@ -121,8 +121,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		break
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -179,11 +177,7 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-
-		return
 	}
-
-	w.Write(http.StatusOK)
 }
 
 func main() {

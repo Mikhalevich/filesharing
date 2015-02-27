@@ -30,13 +30,13 @@
                                    <th class="col-md-1">Action</th>
 								</tr>
 							</thead>
-							<tbody>
+							<tbody id="rows">
 							{{range $index, $fileInfo := .FileInfoList}}
-								<tr>
+								<tr id="row_{{$index}}">
 									<td>{{increment $index}}</td>
 									<td id="name"><a href='{{$fileInfo.Path}}'>{{$fileInfo.Name}}</a></td>
 									<td>{{$fileInfo.Size}}</td>
-                                   <td><button id="removeBtn">&times;</button></td>
+                                   <td><input type="button" onclick="removeFileRequest({{$index}}, '{{$fileInfo.Name}}')" value="&times;"></input></td>
 								</tr>
 							{{end}}
 							</tbody>
@@ -93,16 +93,16 @@
   				},
 			}
 
-			var removeFileRequest = function(fileName) {
+			var removeFileRequest = function(idx, fileName) {
 				$.ajax({
   					type: "POST",
   					url: "/remove/",
   					data: {"fileName": fileName},
                     success: function() {
-                        location.reload()
+                        $("#row_"+idx).remove()
                     },
                     error: function() {
-                        location.reload()
+                        alert("can't remove " + fileName)
                     }
 				})
 			}
@@ -111,18 +111,12 @@
 				$('#textSharingBox').modal('show')
 			})
 
-			var onCloseUploadingBox = function() {
+			var onCloseTextSharingBox = function() {
 				$('#textSharingBox').modal('hide')
 			}
 
-			$('#closeBtn').on('click', onCloseUploadingBox)
-			$('#okBtn').on('click', onCloseUploadingBox)
-
-            $('#removeBtn').on('click', function(event) {
-                var fileName = $(event.target).parent().siblings("#name").text()
-
-                removeFileRequest(fileName)
-            })
+			$('#closeBtn').on('click', onCloseTextSharingBox)
+			$('#okBtn').on('click', onCloseTextSharingBox)
 		</script>
 	</body>
 </html>
