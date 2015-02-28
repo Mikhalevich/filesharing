@@ -76,7 +76,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		if ld := fileInfo.ListDir("storage"); ld.IsExist(fileName) {
+		if ld := fileInfo.ListDir(storageDir); ld.IsExist(fileName) {
 			ext := filepath.Ext(fileName)
 			fileNameTpl := strings.TrimSuffix(fileName, ext) + "_%d" + ext
 
@@ -103,7 +103,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		f, err := os.Create(path.Join(storageDir, fileName))
 		if err != nil {
-			log.Printf(err.Error())
+			log.Println(err.Error())
 
 			http.Error(w, "opening file: "+err.Error(), http.StatusInternalServerError)
 
@@ -121,10 +121,12 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		break
 	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
-	fiList := fileInfo.ListDir("storage")
+	fiList := fileInfo.ListDir(storageDir)
 
 	funcs := template.FuncMap{"increment": func(i int) int { i++; return i }}
 
@@ -160,7 +162,7 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	fiList := fileInfo.ListDir("storage")
+	fiList := fileInfo.ListDir(storageDir)
 
 	isExist := fiList.IsExist(fileName)
 	if !isExist {
@@ -173,8 +175,47 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := os.Remove("storage/" + fileName); err != nil {
+	if err := os.Remove(path.Join(storageDir, fileName)); err != nil {
 		log.Println(err)
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func shareTextHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
+
+		return
+	}
+
+	title := r.FormValue("title")
+	body := r.FormValue("body")
+
+	if len(title) == 0 || len(body) == 0 {
+		err := "title or body was not set"
+
+		log.Println(err)
+
+		http.Error(w, err, http.StatusBadRequest)
+
+		return
+	}
+
+	file, err := os.Create(path.Join(storageDir, title))
+	if err != nil {
+		log.Println(err.Error())
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	defer file.Close()
+
+	_, err = file.WriteString(body)
+	if err != nil {
+		log.Println(err.Error())
 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -189,12 +230,13 @@ func main() {
 	http.HandleFunc("/", makeHandler(rootHandler))
 	http.HandleFunc("/upload/", makeHandler(uploadHandler))
 	http.HandleFunc("/remove/", makeHandler(removeHandler))
+	http.HandleFunc("/shareText/", makeHandler(shareTextHandler))
 
 	// static resourses
 	http.Handle("/res/", http.StripPrefix("/res/", http.FileServer(http.Dir("res"))))
-	http.Handle("/storage/", http.StripPrefix("/storage/", http.FileServer(http.Dir("storage"))))
+	http.Handle("/storage/", http.StripPrefix("/storage/", http.FileServer(http.Dir(storageDir))))
 
-	go fileInfo.CleanDir("storage")
+	go fileInfo.CleanDir(storageDir)
 
 	log.Println("Running at " + *host)
 
