@@ -34,7 +34,7 @@
 							{{range $index, $fileInfo := .FileInfoList}}
 								<tr id="row_{{$index}}">
 									<td>{{increment $index}}</td>
-									<td id="name"><a href='{{$fileInfo.Path}}'>{{$fileInfo.Name}}</a></td>
+									<td id="name"><a href="{{$fileInfo.Path}}">{{$fileInfo.Name}}</a></td>
 									<td>{{$fileInfo.Size}}</td>
                                    <td><input type="button" onclick="removeFileRequest({{$index}}, '{{$fileInfo.Name}}')" value="&times;"></input></td>
 								</tr>
@@ -55,12 +55,12 @@
 		            </div>
 		            <div class="panel-body modal-body">
 						<form class="form-vertical">
-                            <div class="form-group">
+                            <div id="titleGroup" class="form-group">
                                 <label for="title" class="control-label">Title</label>
 
                                 <input id="title" type="text" class="form-control">
                             </div>
-                            <div class="form-group">
+                            <div id="bodyGroup" class="form-group">
                                 <label for="body" class="control-label">Body</label>
 
                                 <textarea id="body" rows="11" class="form-control"></textarea>
@@ -68,6 +68,7 @@
                         </form>
 		            </div>
 					<div class="modal-footer">
+						<span id="errorLabel" style="color: #ff0000; display: none;">You must fill in all fields</span>
 						<button id="okBtn" type="button" class="btn btn-success col-md-offset-6">Ok</button>
 						<button id="cancelBtn" type="button" class="btn btn-success col-md-offset-6">Cancel</button>
 					</div>
@@ -121,26 +122,51 @@
 				})
 			}
 
-		    $('#showTextSharingBoxBtn').on('click', function () {
-				$('#textSharingBox').modal('show')
+		    $("#showTextSharingBoxBtn").on("click", function () {
+				$("#textSharingBox").modal("show")
 			})
 
-			var onCloseTextSharingBox = function() {
-				$('#textSharingBox').modal('hide')
+			var showError = function(show) {
+				if (show) {
+					$("#errorLabel").show()
+					$("#titleGroup").addClass("has-error")
+					$("#bodyGroup").addClass("has-error")
+				} else {
+					$("#errorLabel").hide()
+					$("#titleGroup").removeClass("has-error")
+					$("#bodyGroup").removeClass("has-error")
+				}
 			}
 
-			$('#closeBtn').on('click', onCloseTextSharingBox)
-			$('#okBtn').on('click', function() {
+			var onCloseTextSharingBox = function() {
+				$("#textSharingBox").modal("hide")
+
+				showError(false)
+			}
+
+			$("#closeBtn").on("click", onCloseTextSharingBox)
+			$("#okBtn").on("click", function() {
+				var title = $("#title").val()
+				var body = $("#body").val()
+
+				if (!title.length || !body.length) {
+					showError(true)
+
+					return
+				}
+
 				$.ajax({
   					type: "POST",
   					url: "/shareText/",
   					data: {
-						"title": $("#title").val(),
-						"body": $("#body").val()
+						"title": title,
+						"body": body
 					},
                     success: function() {
-						$('#textSharingBox').modal('hide')
-						
+						$("#textSharingBox").modal("hide")
+
+						showError(false)
+
 						location.reload()	
                     },
                     error: function() {
@@ -148,7 +174,7 @@
                     }
 				})
 			})
-			$('#cancelBtn').on('click', onCloseTextSharingBox)
+			$("#cancelBtn").on("click", onCloseTextSharingBox)
 		</script>
 	</body>
 </html>
