@@ -4,14 +4,11 @@ import (
 	"bytes"
 	"fileSharing/fileInfo"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
-	"strings"
 	"text/template"
 )
 
@@ -76,21 +73,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		if ld := fileInfo.ListDir(storageDir); ld.IsExist(fileName) {
-			ext := filepath.Ext(fileName)
-			fileNameTpl := strings.TrimSuffix(fileName, ext) + "_%d" + ext
-
-			count := 1
-			var f func()
-			f = func() {
-				fileName = fmt.Sprintf(fileNameTpl, count)
-				if ld.IsExist(fileName) {
-					count++
-					f()
-				}
-			}
-			f()
-		}
+		fileName = fileInfo.UniqueName(fileName, storageDir)
 
 		buf := bytes.NewBuffer(make([]byte, 0))
 		if _, err = io.Copy(buf, part); err != nil {
@@ -164,7 +147,7 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 
 	fiList := fileInfo.ListDir(storageDir)
 
-	isExist := fiList.IsExist(fileName)
+	isExist := fiList.Exist(fileName)
 	if !isExist {
 		err := fileName + " doesn't exist"
 
@@ -201,6 +184,8 @@ func shareTextHandler(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	title = fileInfo.UniqueName(title, storageDir)
 
 	file, err := os.Create(path.Join(storageDir, title))
 	if err != nil {

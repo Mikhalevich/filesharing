@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -70,7 +71,7 @@ func (fil FileInfoList) Less(i, j int) bool {
 	return fil[i].ModTime().After(fil[j].ModTime())
 }
 
-func (fil FileInfoList) IsExist(name string) bool {
+func (fil FileInfoList) Exist(name string) bool {
 	for _, fi := range fil {
 		if fi.Name() == name {
 			return true
@@ -115,4 +116,29 @@ func CleanDir(dirPath string) {
 			log.Println(err.Error())
 		}
 	}
+}
+
+func UniqueName(fileName string, dir string) string {
+	if ld := ListDir(dir); ld.Exist(fileName) {
+		ext := filepath.Ext(fileName)
+
+		fileNameTpl := strings.TrimSuffix(fileName, ext) + "_%d" + ext
+
+		count := 1
+
+		var f func() string
+		f = func() string {
+			fileName = fmt.Sprintf(fileNameTpl, count)
+			if ld.Exist(fileName) {
+				count++
+				return f()
+			}
+
+			return fileName
+		}
+
+		return f()
+	}
+
+	return fileName
 }
