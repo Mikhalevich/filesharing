@@ -101,19 +101,40 @@ func ListDir(dirPath string) FileInfoList {
 	return fiList
 }
 
-func CleanDir(dirPath string) {
+func CleanDir(dirPath string, t time.Time) {
 	if !path.IsAbs(dirPath) {
 		dirPath, _ = filepath.Abs(dirPath)
 	}
 
-	c := time.Tick(24 * time.Hour)
-	for now := range c {
-		log.Printf("time: %v; cleaning dir: %q\n", now, dirPath)
-		if err := os.RemoveAll(dirPath); err != nil {
-			log.Println(err.Error())
+	tick := func() <-chan time.Time {
+		now := time.Now()
+
+		if t.Before(now) {
+			t = t.Add(time.Hour * 24)
 		}
-		if err := os.Mkdir(dirPath, 0777); err != nil {
-			log.Println(err.Error())
+
+		return time.Tick(t.Sub(now))
+	}
+
+	for {
+		c := tick()
+
+		for now := range c {
+			if err := os.RemoveAll(dirPath); err != nil {
+				log.Println(err.Error())
+
+				return
+			}
+
+			log.Printf("time: %v; cleaning dir: %q\n", now, dirPath)
+
+			if err := os.Mkdir(dirPath, 0777); err != nil {
+				log.Println(err.Error())
+
+				return
+			}
+
+			break
 		}
 	}
 }

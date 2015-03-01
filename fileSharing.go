@@ -10,16 +10,18 @@ import (
 	"os"
 	"path"
 	"text/template"
+	"time"
 )
 
 var (
 	host       = flag.String("host", "127.0.0.1:8080", "listening port and hostname")
+	cleanTime  = flag.String("time", "12:00PM", "time when storage will be clean")
 	storageDir = "storage"
 	title      = "Duplo"
 )
 
 func usage() {
-	log.Println("usage: fileSharing -host=[host], default host is " + *host)
+	log.Println("usage: fileSharing -host=[host] -time [hh:mm], default host is " + *host + " and time is 24:00")
 
 	os.Exit(1)
 }
@@ -221,11 +223,20 @@ func main() {
 	http.Handle("/res/", http.StripPrefix("/res/", http.FileServer(http.Dir("res"))))
 	http.Handle("/storage/", http.StripPrefix("/storage/", http.FileServer(http.Dir(storageDir))))
 
-	go fileInfo.CleanDir(storageDir)
+	t, err := time.Parse("15:04", *cleanTime)
+	if err != nil {
+		log.Println(err.Error())
+
+		usage()
+	}
+
+	now := time.Now()
+	go fileInfo.CleanDir(storageDir,
+		time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), now.Second(), now.Nanosecond(), now.Location()))
 
 	log.Println("Running at " + *host)
 
-	err := http.ListenAndServe(*host, nil)
+	err = http.ListenAndServe(*host, nil)
 	if err != nil {
 		log.Println(err.Error())
 	}
