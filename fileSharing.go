@@ -15,13 +15,13 @@ import (
 
 var (
 	host       = flag.String("host", "127.0.0.1:8080", "listening port and hostname")
-	cleanTime  = flag.String("time", "12:00PM", "time when storage will be clean")
+	cleanTime  = flag.String("time", "23:59", "time when storage will be clean")
 	storageDir = "storage"
 	title      = "Duplo"
 )
 
 func usage() {
-	log.Println("usage: fileSharing -host=[host] -time [hh:mm], default host is " + *host + " and time is 24:00")
+	log.Println("usage: fileSharing -host=[host] -time [hh:mm], default host is " + *host + " and time is 23:59")
 
 	os.Exit(1)
 }
