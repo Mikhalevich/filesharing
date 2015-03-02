@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fileSharing/fileInfo"
 	"flag"
 	"io"
@@ -77,15 +76,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		fileName = fileInfo.UniqueName(fileName, storageDir)
 
-		buf := bytes.NewBuffer(make([]byte, 0))
-		if _, err = io.Copy(buf, part); err != nil {
-			log.Printf(err.Error())
-
-			http.Error(w, "copying: "+err.Error(), http.StatusInternalServerError)
-
-			return
-		}
-
 		f, err := os.Create(path.Join(storageDir, fileName))
 		if err != nil {
 			log.Println(err.Error())
@@ -94,17 +84,16 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 			return
 		}
+
 		defer f.Close()
 
-		if _, err = buf.WriteTo(f); err != nil {
+		if _, err = io.Copy(f, part); err != nil {
 			log.Printf(err.Error())
 
-			http.Error(w, "writing: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "copying: "+err.Error(), http.StatusInternalServerError)
 
 			return
 		}
-
-		break
 	}
 
 	w.WriteHeader(http.StatusOK)
