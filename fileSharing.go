@@ -82,29 +82,34 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		fileName = fileInfo.UniqueName(fileName, storageDir)
 
-		f, err := os.Create(path.Join(tempDir, fileName))
-		if err != nil {
-			log.Println(err.Error())
+		func() {
+			f, err := os.Create(path.Join(tempDir, fileName))
+			if err != nil {
+				log.Println(err.Error())
 
-			http.Error(w, "opening file: "+err.Error(), http.StatusInternalServerError)
+				http.Error(w, "opening file: "+err.Error(), http.StatusInternalServerError)
 
-			return
-		}
+				return
+			}
 
-		defer f.Close()
+			defer f.Close()
 
-		if _, err = io.Copy(f, part); err != nil {
-			log.Printf(err.Error())
+			if _, err = io.Copy(f, part); err != nil {
+				log.Printf(err.Error())
 
-			http.Error(w, "copying: "+err.Error(), http.StatusInternalServerError)
+				http.Error(w, "copying: "+err.Error(), http.StatusInternalServerError)
 
-			return
-		}
+				return
+			}
+		}()
 	}
 
 	fil := fileInfo.ListDir(tempDir)
 	for _, fi := range fil {
-		os.Rename(fi.Path, path.Join(storageDir, fi.Name()))
+		err = os.Rename(fi.Path, path.Join(storageDir, fi.Name()))
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
