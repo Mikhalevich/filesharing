@@ -69,7 +69,7 @@
 		            </div>
 					<div class="modal-footer">
 						<span id="errorLabel" style="color: #ff0000; display: none;">You must fill in all fields</span>
-						<button id="okBtn" type="button" class="btn btn-success col-md-offset-6">Ok</button>
+						<button id="okBtn" type="button" class="btn btn-success col-md-offset-6" autofocus>Ok</button>
 						<button id="cancelBtn" type="button" class="btn btn-success col-md-offset-6">Cancel</button>
 					</div>
 		        </div>
@@ -167,7 +167,7 @@
 
 						showError(false)
 
-						location.reload()	
+						location.reload()
                     },
                     error: function() {
                         alert("can't share text")
