@@ -22,23 +22,23 @@ var routes = Routes{
 		rootHandler,
 	},
 	Route{
-		"/upload",
+		"/upload/",
 		"POST",
 		uploadHandler,
 	},
 	Route{
-		"/remove",
+		"/remove/",
 		"POST",
 		removeHandler,
 	},
 	Route{
-		"/shareText",
+		"/shareText/",
 		"POST",
 		shareTextHandler,
 	},
 }
 
-func recoverHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+func recoverHandler(next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if e, ok := recover().(error); ok {
@@ -48,7 +48,7 @@ func recoverHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFun
 			}
 		}()
 
-		fn(w, r)
+		next.ServeHTTP(w, r)
 	}
 }
 
@@ -56,10 +56,14 @@ func NewRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range routes {
 		router.
-			Methods(strings.Split(route.Methods, ",")...).
 			Path(route.Pattern).
+			Methods(strings.Split(route.Methods, ",")...).
 			Handler(recoverHandler(route.HandlerFunc))
 	}
+
+	// static resourses
+	router.PathPrefix("/res/").Handler(http.StripPrefix("/res/", http.FileServer(http.Dir("res"))))
+	router.PathPrefix("/storage/").Handler(http.StripPrefix("/storage/", http.FileServer(http.Dir(storageDir))))
 
 	return router
 }

@@ -37,10 +37,6 @@ func main() {
 
 	router := NewRouter()
 
-	// static resourses
-	router.Handle("/res/", http.StripPrefix("/res/", http.FileServer(http.Dir("res"))))
-	router.Handle("/storage/", http.StripPrefix("/storage/", http.FileServer(http.Dir(storageDir))))
-
 	t, err := time.Parse("15:04", *cleanTime)
 	if err != nil {
 		log.Println(err.Error())
