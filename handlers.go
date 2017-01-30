@@ -10,6 +10,11 @@ import (
 	"path"
 )
 
+var (
+	funcs     = template.FuncMap{"increment": func(i int) int { i++; return i }}
+	templates = template.Must(template.New("fileSharing").Funcs(funcs).ParseFiles("res/index.html"))
+)
+
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
@@ -83,19 +88,14 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	fiList := fileInfo.ListDir(storageDir)
 
-	funcs := template.FuncMap{"increment": func(i int) int { i++; return i }}
-
-	t, err := template.New("index.html").Funcs(funcs).ParseFiles("res/index.html")
-	if err != nil {
-		log.Println(err.Error())
-	}
-
 	page := struct {
 		Title        string
 		FileInfoList []fileInfo.FileInfo
 	}{title, fiList}
 
-	t.Execute(w, page)
+	if err := templates.ExecuteTemplate(w, "index.html", page); err != nil {
+		log.Println(err)
+	}
 }
 
 func removeHandler(w http.ResponseWriter, r *http.Request) {
