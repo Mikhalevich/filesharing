@@ -35,11 +35,9 @@ func main() {
 
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 
-	router := NewRouter()
-
 	t, err := time.Parse("15:04", *cleanTime)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 
 		usage()
 	}
@@ -50,8 +48,10 @@ func main() {
 
 	log.Println("Running at " + *host)
 
+	router := NewRouter()
+
 	err = http.ListenAndServe(*host, router)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 	}
 }
