@@ -41,23 +41,23 @@ var routes = Routes{
 		"GET",
 		http.FileServer(http.Dir(rootStorageDir)),
 	},
-	/*Route{
-		"/upload/",
+	Route{
+		"/{storage}/upload/",
 		false,
 		"POST",
-		uploadHandler,
+		http.HandlerFunc(uploadHandler),
 	},
-	Route{
+	/*Route{
 		"/remove/",
 		false,
 		"POST",
-		removeHandler,
+		http.HandlerFunc(removeHandler),
 	},
 	Route{
 		"/shareText/",
 		false,
 		"POST",
-		shareTextHandler,
+		http.HandlerFunc(shareTextHandler),
 	},*/
 }
 

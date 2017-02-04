@@ -48,16 +48,13 @@ func viewStorageHandler(w http.ResponseWriter, r *http.Request) {
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
-
 		return
 	}
 
 	mr, err := r.MultipartReader()
 	if err != nil {
-		log.Printf(err.Error())
-
+		log.Println(err)
 		http.Error(w, "reading body: "+err.Error(), http.StatusInternalServerError)
-
 		return
 	}
 
@@ -68,10 +65,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err != nil {
-			log.Printf(err.Error())
-
+			log.Println(err)
 			http.Error(w, "reading body: "+err.Error(), http.StatusInternalServerError)
-
 			return
 		}
 
@@ -82,31 +77,31 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		fileName = fileInfo.UniqueName(fileName, rootStorageDir)
 
-		func() {
+		err = func() error {
 			f, err := os.Create(path.Join(tempDir, fileName))
 			if err != nil {
-				log.Println(err.Error())
-
-				http.Error(w, "opening file: "+err.Error(), http.StatusInternalServerError)
-
-				return
+				return err
 			}
 
 			defer f.Close()
 
 			if _, err = io.Copy(f, part); err != nil {
-				log.Printf(err.Error())
-
-				http.Error(w, "copying: "+err.Error(), http.StatusInternalServerError)
-
-				return
+				return err
 			}
+
+			return nil
 		}()
+
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	fil := fileInfo.ListDir(tempDir)
 	for _, fi := range fil {
-		err = os.Rename(path.Join(tempDir, fi.Name()), path.Join(rootStorageDir, fi.Name()))
+		err = os.Rename(path.Join(tempDir, fi.Name()), path.Join(rootStorageDir, mux.Vars(r)["storage"], fi.Name()))
 		if err != nil {
 			log.Println(err.Error())
 		}
