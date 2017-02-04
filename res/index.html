@@ -6,16 +6,16 @@
 
 		<title>{{.Title}}</title>
 
-		<link rel="shortcut icon" type="image/x-icon" href="res/file-sharing.jpg" />
-		<link href="res/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
-		<link href="res/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-		<link href="res/dropzone/css/basic.css" rel="stylesheet">
-		<link href="res/dropzone/css/dropzone.css" rel="stylesheet">
-		<link href="res/file-sharing.css" rel="stylesheet">
+		<link rel="shortcut icon" type="image/x-icon" href="/res/file-sharing.jpg" />
+		<link href="/res/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
+		<link href="/res/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+		<link href="/res/dropzone/css/basic.css" rel="stylesheet">
+		<link href="/res/dropzone/css/dropzone.css" rel="stylesheet">
+		<link href="/res/file-sharing.css" rel="stylesheet">
 
-		<script type="text/javascript" src="res/jquery/js/jquery.min.js"></script>
-		<script type="text/javascript" src="res/bootstrap/js/bootstrap.min.js"></script>
-		<script type="text/javascript" src="res/dropzone/dropzone.js"></script>
+		<script type="text/javascript" src="/res/jquery/js/jquery.min.js"></script>
+		<script type="text/javascript" src="/res/bootstrap/js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="/res/dropzone/dropzone.js"></script>
 	</head>
 	<body>
 		<div class="container">
@@ -41,7 +41,7 @@
                                     {{range $index, $fileInfo := .FileInfoList}}
                                         <tr id="row_{{$index}}">
                                             <td>{{increment $index}}</td>
-                                            <td id="name"><a href="{{$fileInfo.Path}}">{{$fileInfo.Name}}</a></td>
+                                            <td id="name"><a href="{{$fileInfo.Name}}">{{$fileInfo.Name}}</a></td>
                                             <td>{{$fileInfo.Size}}</td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-danger btn-xs" onclick="removeFileRequest({{$index}}, '{{$fileInfo.Name}}')">&times;</button>

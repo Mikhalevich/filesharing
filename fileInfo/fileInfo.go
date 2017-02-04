@@ -50,7 +50,6 @@ func (b ByteSize) String() string {
 
 type FileInfo struct {
 	os.FileInfo
-	Path string
 }
 
 func (fi *FileInfo) Size() string {
@@ -92,8 +91,7 @@ func ListDir(dirPath string) FileInfoList {
 	fiList := make(FileInfoList, 0, len(osFiList))
 
 	for _, osFi := range osFiList {
-		fi := FileInfo{osFi, path.Join(dirPath, osFi.Name())}
-		fiList = append(fiList, fi)
+		fiList = append(fiList, FileInfo{osFi})
 	}
 
 	sort.Sort(fiList)

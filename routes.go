@@ -8,9 +8,10 @@ import (
 )
 
 type Route struct {
-	Pattern     string
-	Methods     string
-	HandlerFunc http.HandlerFunc
+	Pattern  string
+	IsPrefix bool
+	Methods  string
+	Handler  http.Handler
 }
 
 type Routes []Route
@@ -18,28 +19,50 @@ type Routes []Route
 var routes = Routes{
 	Route{
 		"/",
+		false,
 		"GET",
-		rootHandler,
+		http.HandlerFunc(rootHandler),
 	},
 	Route{
+		"/res/",
+		true,
+		"GET",
+		http.StripPrefix("/res/", http.FileServer(http.Dir("res"))),
+	},
+	Route{
+		"/{storage}/",
+		false,
+		"GET",
+		http.HandlerFunc(viewStorageHandler),
+	},
+	Route{
+		"/{storage}/",
+		true,
+		"GET",
+		http.FileServer(http.Dir(rootStorageDir)),
+	},
+	/*Route{
 		"/upload/",
+		false,
 		"POST",
 		uploadHandler,
 	},
 	Route{
 		"/remove/",
+		false,
 		"POST",
 		removeHandler,
 	},
 	Route{
 		"/shareText/",
+		false,
 		"POST",
 		shareTextHandler,
-	},
+	},*/
 }
 
-func recoverHandler(next http.Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func recoverHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if e, ok := recover().(error); ok {
 				http.Error(w, e.Error(), http.StatusInternalServerError)
@@ -49,21 +72,21 @@ func recoverHandler(next http.Handler) http.HandlerFunc {
 		}()
 
 		next.ServeHTTP(w, r)
-	}
+	})
 }
 
 func NewRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range routes {
-		router.
-			Path(route.Pattern).
-			Methods(strings.Split(route.Methods, ",")...).
-			Handler(recoverHandler(route.HandlerFunc))
+		muxRoute := router.NewRoute()
+		if route.IsPrefix {
+			muxRoute.PathPrefix(route.Pattern)
+		} else {
+			muxRoute.Path(route.Pattern)
+		}
+		muxRoute.Methods(strings.Split(route.Methods, ",")...)
+		muxRoute.Handler(recoverHandler(route.Handler))
 	}
-
-	// static resourses
-	router.PathPrefix("/res/").Handler(http.StripPrefix("/res/", http.FileServer(http.Dir("res"))))
-	router.PathPrefix("/storage/").Handler(http.StripPrefix("/storage/", http.FileServer(http.Dir(storageDir))))
 
 	return router
 }

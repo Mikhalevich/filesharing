@@ -8,12 +8,42 @@ import (
 	"net/http"
 	"os"
 	"path"
+
+	"github.com/gorilla/mux"
 )
 
 var (
 	funcs     = template.FuncMap{"increment": func(i int) int { i++; return i }}
 	templates = template.Must(template.New("fileSharing").Funcs(funcs).ParseFiles("res/index.html"))
 )
+
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/common/", http.StatusMovedPermanently)
+}
+
+func viewStorageHandler(w http.ResponseWriter, r *http.Request) {
+	storage := mux.Vars(r)["storage"]
+
+	sPath := storagePath(storage)
+
+	err := os.Mkdir(sPath, os.ModePerm)
+	if err != nil && !os.IsExist(err) {
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	fiList := fileInfo.ListDir(sPath)
+	page := struct {
+		Title        string
+		FileInfoList []fileInfo.FileInfo
+	}{title, fiList}
+
+	err = templates.ExecuteTemplate(w, "index.html", page)
+	if err != nil {
+		log.Println(err)
+	}
+}
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
@@ -50,7 +80,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		fileName = fileInfo.UniqueName(fileName, storageDir)
+		fileName = fileInfo.UniqueName(fileName, rootStorageDir)
 
 		func() {
 			f, err := os.Create(path.Join(tempDir, fileName))
@@ -76,26 +106,13 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	fil := fileInfo.ListDir(tempDir)
 	for _, fi := range fil {
-		err = os.Rename(fi.Path, path.Join(storageDir, fi.Name()))
+		err = os.Rename(path.Join(tempDir, fi.Name()), path.Join(rootStorageDir, fi.Name()))
 		if err != nil {
 			log.Println(err.Error())
 		}
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
-
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	fiList := fileInfo.ListDir(storageDir)
-
-	page := struct {
-		Title        string
-		FileInfoList []fileInfo.FileInfo
-	}{title, fiList}
-
-	if err := templates.ExecuteTemplate(w, "index.html", page); err != nil {
-		log.Println(err)
-	}
 }
 
 func removeHandler(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +134,7 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	fiList := fileInfo.ListDir(storageDir)
+	fiList := fileInfo.ListDir(rootStorageDir)
 
 	isExist := fiList.Exist(fileName)
 	if !isExist {
@@ -130,7 +147,7 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := os.Remove(path.Join(storageDir, fileName)); err != nil {
+	if err := os.Remove(path.Join(rootStorageDir, fileName)); err != nil {
 		log.Println(err)
 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -157,9 +174,9 @@ func shareTextHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	title = fileInfo.UniqueName(title, storageDir)
+	title = fileInfo.UniqueName(title, rootStorageDir)
 
-	file, err := os.Create(path.Join(storageDir, title))
+	file, err := os.Create(path.Join(rootStorageDir, title))
 	if err != nil {
 		log.Println(err.Error())
 

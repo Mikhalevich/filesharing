@@ -11,15 +11,15 @@ import (
 )
 
 var (
-	host       = flag.String("host", "127.0.0.1:8080", "listening port and hostname")
-	cleanTime  = flag.String("time", "23:59", "time when storage will be clean")
-	title      = "Duplo"
-	storageDir = "storage"
-	tempDir    = path.Join(os.TempDir(), title)
+	host           = flag.String("host", "127.0.0.1:8080", "listening port and hostname")
+	cleanTime      = flag.String("time", "23:59", "time when storage will be clean")
+	title          = "Duplo"
+	rootStorageDir = "storage"
+	tempDir        = path.Join(os.TempDir(), title)
 )
 
 func init() {
-	os.Mkdir(storageDir, os.ModePerm)
+	os.Mkdir(rootStorageDir, os.ModePerm)
 	os.Mkdir(tempDir, os.ModePerm)
 }
 
@@ -27,6 +27,10 @@ func usage() {
 	log.Println("usage: fileSharing -host=[host] -time [hh:mm], default host is " + *host + " and time is 23:59")
 
 	os.Exit(1)
+}
+
+func storagePath(storageName string) string {
+	return path.Join(rootStorageDir, storageName)
 }
 
 func main() {
@@ -43,7 +47,7 @@ func main() {
 	}
 
 	now := time.Now()
-	go fileInfo.CleanDir(storageDir,
+	go fileInfo.CleanDir(rootStorageDir,
 		time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), now.Second(), now.Nanosecond(), now.Location()))
 
 	log.Println("Running at " + *host)
