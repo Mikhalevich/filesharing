@@ -149,40 +149,32 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 func shareTextHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
-
 		return
 	}
 
 	title := r.FormValue("title")
 	body := r.FormValue("body")
 
-	if len(title) == 0 || len(body) == 0 {
+	if len(title) <= 0 || len(body) <= 0 {
 		err := "title or body was not set"
-
 		log.Println(err)
-
 		http.Error(w, err, http.StatusBadRequest)
-
 		return
 	}
 
-	title = fileInfo.UniqueName(title, rootStorageDir)
+	sPath := storagePath(mux.Vars(r)["storage"])
+	title = fileInfo.UniqueName(title, sPath)
 
-	file, err := os.Create(path.Join(rootStorageDir, title))
-	if err != nil {
-		log.Println(err.Error())
-
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-
+	file, err := os.Create(path.Join(sPath, title))
+	if respondError(err, w) {
 		return
 	}
-
 	defer file.Close()
 
 	_, err = file.WriteString(body)
-	if err != nil {
-		log.Println(err.Error())
-
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if respondError(err, w) {
+		return
 	}
+
+	w.WriteHeader(http.StatusOK)
 }

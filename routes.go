@@ -53,12 +53,12 @@ var routes = Routes{
 		"POST",
 		http.HandlerFunc(removeHandler),
 	},
-	/*Route{
-		"/shareText/",
+	Route{
+		"/{storage}/shareText/",
 		false,
 		"POST",
 		http.HandlerFunc(shareTextHandler),
-	},*/
+	},
 }
 
 func recoverHandler(next http.Handler) http.Handler {
