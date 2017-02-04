@@ -117,40 +117,33 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 func removeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
-
 		return
 	}
 
 	fileName := r.FormValue("fileName")
-	if len(fileName) == 0 {
+	if len(fileName) <= 0 {
 		err := "file name was not set"
-
 		log.Println(err)
-
 		http.Error(w, err, http.StatusBadRequest)
-
 		return
 
 	}
 
-	fiList := fileInfo.ListDir(rootStorageDir)
-
-	isExist := fiList.Exist(fileName)
-	if !isExist {
+	sPath := storagePath(mux.Vars(r)["storage"])
+	fiList := fileInfo.ListDir(sPath)
+	if !fiList.Exist(fileName) {
 		err := fileName + " doesn't exist"
-
 		log.Println(err)
-
 		http.Error(w, err, http.StatusBadRequest)
-
 		return
 	}
 
-	if err := os.Remove(path.Join(rootStorageDir, fileName)); err != nil {
-		log.Println(err)
-
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	err := os.Remove(path.Join(sPath, fileName))
+	if respondError(err, w) {
+		return
 	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func shareTextHandler(w http.ResponseWriter, r *http.Request) {

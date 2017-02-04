@@ -47,13 +47,13 @@ var routes = Routes{
 		"POST",
 		http.HandlerFunc(uploadHandler),
 	},
-	/*Route{
-		"/remove/",
+	Route{
+		"/{storage}/remove/",
 		false,
 		"POST",
 		http.HandlerFunc(removeHandler),
 	},
-	Route{
+	/*Route{
 		"/shareText/",
 		false,
 		"POST",
