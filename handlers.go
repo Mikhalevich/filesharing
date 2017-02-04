@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fileSharing/fileInfo"
 	"html/template"
 	"io"
@@ -17,10 +18,10 @@ var (
 	templates = template.Must(template.New("fileSharing").Funcs(funcs).ParseFiles("res/index.html"))
 )
 
-func respondError(err error, w http.ResponseWriter) bool {
+func respondError(err error, w http.ResponseWriter, httpStatusCode int) bool {
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), httpStatusCode)
 		return true
 	}
 
@@ -62,7 +63,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mr, err := r.MultipartReader()
-	if respondError(err, w) {
+	if respondError(err, w, http.StatusInternalServerError) {
 		return
 	}
 
@@ -72,7 +73,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if respondError(err, w) {
+		if respondError(err, w, http.StatusInternalServerError) {
 			return
 		}
 
@@ -98,7 +99,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return nil
 		}()
 
-		if respondError(err, w) {
+		if respondError(err, w, http.StatusInternalServerError) {
 			return
 		}
 	}
@@ -122,24 +123,19 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 
 	fileName := r.FormValue("fileName")
 	if len(fileName) <= 0 {
-		err := "file name was not set"
-		log.Println(err)
-		http.Error(w, err, http.StatusBadRequest)
+		respondError(errors.New("file name was not set"), w, http.StatusBadRequest)
 		return
-
 	}
 
 	sPath := storagePath(mux.Vars(r)["storage"])
 	fiList := fileInfo.ListDir(sPath)
 	if !fiList.Exist(fileName) {
-		err := fileName + " doesn't exist"
-		log.Println(err)
-		http.Error(w, err, http.StatusBadRequest)
+		respondError(errors.New(fileName+" doesn't exist"), w, http.StatusBadRequest)
 		return
 	}
 
 	err := os.Remove(path.Join(sPath, fileName))
-	if respondError(err, w) {
+	if respondError(err, w, http.StatusInternalServerError) {
 		return
 	}
 
@@ -156,9 +152,7 @@ func shareTextHandler(w http.ResponseWriter, r *http.Request) {
 	body := r.FormValue("body")
 
 	if len(title) <= 0 || len(body) <= 0 {
-		err := "title or body was not set"
-		log.Println(err)
-		http.Error(w, err, http.StatusBadRequest)
+		respondError(errors.New("title or body was not set"), w, http.StatusBadRequest)
 		return
 	}
 
@@ -166,13 +160,13 @@ func shareTextHandler(w http.ResponseWriter, r *http.Request) {
 	title = fileInfo.UniqueName(title, sPath)
 
 	file, err := os.Create(path.Join(sPath, title))
-	if respondError(err, w) {
+	if respondError(err, w, http.StatusInternalServerError) {
 		return
 	}
 	defer file.Close()
 
 	_, err = file.WriteString(body)
-	if respondError(err, w) {
+	if respondError(err, w, http.StatusInternalServerError) {
 		return
 	}
 
