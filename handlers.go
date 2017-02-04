@@ -17,6 +17,16 @@ var (
 	templates = template.Must(template.New("fileSharing").Funcs(funcs).ParseFiles("res/index.html"))
 )
 
+func respondError(err error, w http.ResponseWriter) bool {
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return true
+	}
+
+	return false
+}
+
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/common/", http.StatusMovedPermanently)
 }
@@ -52,9 +62,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mr, err := r.MultipartReader()
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "reading body: "+err.Error(), http.StatusInternalServerError)
+	if respondError(err, w) {
 		return
 	}
 
@@ -64,9 +72,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if err != nil {
-			log.Println(err)
-			http.Error(w, "reading body: "+err.Error(), http.StatusInternalServerError)
+		if respondError(err, w) {
 			return
 		}
 
@@ -92,9 +98,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return nil
 		}()
 
-		if err != nil {
-			log.Println(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		if respondError(err, w) {
 			return
 		}
 	}
