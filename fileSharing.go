@@ -29,10 +29,6 @@ func usage() {
 	os.Exit(1)
 }
 
-func storagePath(storageName string) string {
-	return path.Join(rootStorageDir, storageName)
-}
-
 func main() {
 	flag.Usage = usage
 	flag.Parse()

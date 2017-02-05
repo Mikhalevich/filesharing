@@ -89,7 +89,7 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 			next.ServeHTTP(w, r)
 		}
 
-		storageName := mux.Vars(r)["storage"]
+		storageName := storageVar(r)
 		_, err := os.Stat(storagePath(storageName))
 		if err != nil {
 			if os.IsNotExist(err) {

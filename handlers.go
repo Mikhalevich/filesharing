@@ -18,29 +18,15 @@ var (
 	templates = template.Must(template.New("fileSharing").Funcs(funcs).ParseFiles("res/index.html"))
 )
 
-func respondError(err error, w http.ResponseWriter, httpStatusCode int) bool {
-	if err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), httpStatusCode)
-		return true
-	}
-
-	return false
-}
-
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/common/", http.StatusMovedPermanently)
 }
 
 func viewStorageHandler(w http.ResponseWriter, r *http.Request) {
-	storage := mux.Vars(r)["storage"]
+	sPath := storagePath(storageVar(r))
 
-	sPath := storagePath(storage)
-
-	err := os.Mkdir(sPath, os.ModePerm)
-	if err != nil && !os.IsExist(err) {
-		log.Println(err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	_, err := os.Stat(sPath)
+	if respondError(err, w, http.StatusInternalServerError) {
 		return
 	}
 
@@ -106,7 +92,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	fil := fileInfo.ListDir(tempDir)
 	for _, fi := range fil {
-		err = os.Rename(path.Join(tempDir, fi.Name()), path.Join(rootStorageDir, mux.Vars(r)["storage"], fi.Name()))
+		err = os.Rename(path.Join(tempDir, fi.Name()), path.Join(storagePath(storageVar(r)), fi.Name()))
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -156,7 +142,7 @@ func shareTextHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sPath := storagePath(mux.Vars(r)["storage"])
+	sPath := storagePath(storageVar(r))
 	title = fileInfo.UniqueName(title, sPath)
 
 	file, err := os.Create(path.Join(sPath, title))
