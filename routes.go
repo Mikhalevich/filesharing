@@ -87,6 +87,7 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !needAuth {
 			next.ServeHTTP(w, r)
+			return
 		}
 
 		storageName := storageVar(r)
