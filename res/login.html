@@ -1,0 +1,16 @@
+<html>
+	<body>
+		<h1>Login</h1>
+		<form method="post" action="">
+			<fieldset>
+		    	<label for="password">Password</label>
+		    	<input type="password" id="password" name="password">
+			</fieldset>
+			<br/>
+		    <fieldset class="center">
+				<button type="submit">Login</button>
+			</fieldset>
+		</form>
+		{{range $key, $value := .Errors}} <p>{{$value}}</p> {{end}}
+	</body>
+</html>

@@ -1,9 +1,13 @@
 package main
 
 import (
+	"crypto/rand"
+	"crypto/sha1"
+	"encoding/base64"
 	"log"
 	"net/http"
 	"path"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -24,4 +28,21 @@ func respondError(err error, w http.ResponseWriter, httpStatusCode int) bool {
 
 func storageVar(r *http.Request) string {
 	return mux.Vars(r)["storage"]
+}
+
+func crypt(password string) [sha1.Size]byte {
+	return sha1.Sum([]byte(password))
+}
+
+func setUserCookie(w http.ResponseWriter, sessionId string) {
+	expire := time.Now().Add(1 * 60 * time.Second)
+	cookie := http.Cookie{Name: "SessionId", Value: sessionId, Expires: expire, HttpOnly: true}
+	http.SetCookie(w, &cookie)
+}
+
+func generateRandomId(size int) string {
+	bytes := make([]byte, size)
+	rand.Read(bytes)
+
+	return base64.URLEncoding.EncodeToString(bytes)
 }

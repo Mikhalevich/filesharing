@@ -34,6 +34,20 @@ var routes = Routes{
 		http.StripPrefix("/res/", http.FileServer(http.Dir("res"))),
 	},
 	Route{
+		"/register/",
+		false,
+		"GET,POST",
+		false,
+		http.HandlerFunc(registerHandler),
+	},
+	Route{
+		"/login/{storage}/",
+		false,
+		"GET,POST",
+		false,
+		http.HandlerFunc(loginHandler),
+	},
+	Route{
 		"/{storage}/",
 		false,
 		"GET",
@@ -85,11 +99,6 @@ func recoverHandler(next http.Handler) http.Handler {
 
 func checkAuth(next http.Handler, needAuth bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !needAuth {
-			next.ServeHTTP(w, r)
-			return
-		}
-
 		storageName := storageVar(r)
 		_, err := os.Stat(storagePath(storageName))
 		if err != nil {
@@ -98,6 +107,11 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 			} else {
 				respondError(err, w, http.StatusInternalServerError)
 			}
+			return
+		}
+
+		if !needAuth {
+			next.ServeHTTP(w, r)
 			return
 		}
 
