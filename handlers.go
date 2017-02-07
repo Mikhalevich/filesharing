@@ -99,14 +99,14 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		userHost := r.RemoteAddr[:strings.Index(r.RemoteAddr, ":")]
 		loginRequest, err := storage.GetRequest(storageName, userHost)
 		if err == nil {
-			if loginRequest.Count >= 3 {
+			if loginRequest.Count >= LoginRequestMaxCount {
 				timeDelta := time.Now().Unix() - loginRequest.LastRequest
-				allowed := timeDelta >= 60
+				allowed := timeDelta >= LoginRequestWaitingPeriod
 
 				if allowed {
 					storage.ResetRequestCounter(loginRequest)
 				} else {
-					userInfo.AddError("common", "Request is not allowed, please wait %d seconds", 60)
+					userInfo.AddError("common", "Request is not allowed, please wait %d seconds", LoginRequestWaitingPeriod)
 					return
 				}
 			}
@@ -130,7 +130,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 		sessionId := generateRandomId(32)
 		currentTime := time.Now().Unix()
-		err = storage.UpdateLoginInfo(user.Id, sessionId, currentTime+1*60)
+		err = storage.UpdateLoginInfo(user.Id, sessionId, currentTime+SessionExpirePeriod)
 		if err != nil {
 			userInfo.AddError("common", "Internal server error, please try again later")
 			log.Println("Unable to update last login info", err)

@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+const (
+	SessionName               = "SessionId"
+	SessionExpirePeriod       = 5 * 60 // sec
+	LoginRequestMaxCount      = 3
+	LoginRequestWaitingPeriod = 60 // sec
+)
+
 var (
 	host           = flag.String("host", "127.0.0.1:8080", "listening port and hostname")
 	cleanTime      = flag.String("time", "23:59", "time when storage will be clean")
