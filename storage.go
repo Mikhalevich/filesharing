@@ -100,8 +100,7 @@ func (self *Storage) createIndexes() error {
 }
 
 func (self *Storage) clearTemporaryData() error {
-	//return self.ClearRequests()
-	return nil
+	return self.ClearRequests()
 }
 
 func (self *Storage) GetRequest(name, remoteAddr string) (LoginRequest, error) {
@@ -111,28 +110,6 @@ func (self *Storage) GetRequest(name, remoteAddr string) (LoginRequest, error) {
 	}
 
 	return request, nil
-}
-
-func (self *Storage) ClearRequests() error {
-	_, err := self.cLoginRequest().RemoveAll(bson.M{})
-	return err
-}
-
-func (self *Storage) ResetRequestCounter(request LoginRequest) error {
-	request.Id = ""
-	request.Count = 1
-	return self.cLoginRequest().Update(bson.M{"name": request.UserName, "remote_addr": request.RemoteAddr}, request)
-}
-
-func (self *Storage) UserByNameAndPassword(name string, password TypePassword) (User, error) {
-	user := User{}
-
-	err := self.cUsers().Find(bson.M{"name": name, "password": password}).One(&user)
-	if err != nil {
-		return User{}, err
-	}
-
-	return user, nil
 }
 
 func (self *Storage) AddRequest(name, remoteAddr string) error {
@@ -165,8 +142,26 @@ func (self *Storage) RemoveRequest(name, remoteAddr string) error {
 	return self.cLoginRequest().Remove(bson.M{"name": name, "remote_addr": remoteAddr})
 }
 
-func (self *Storage) UpdateLoginInfo(id bson.ObjectId, sessionId string, expires int64) error {
-	return self.cUsers().UpdateId(id, bson.M{"$set": bson.M{"session_id": sessionId, "session_expires": expires}})
+func (self *Storage) ResetRequestCounter(request LoginRequest) error {
+	request.Id = ""
+	request.Count = 1
+	return self.cLoginRequest().Update(bson.M{"name": request.UserName, "remote_addr": request.RemoteAddr}, request)
+}
+
+func (self *Storage) ClearRequests() error {
+	_, err := self.cLoginRequest().RemoveAll(bson.M{})
+	return err
+}
+
+func (self *Storage) UserByNameAndPassword(name string, password TypePassword) (User, error) {
+	user := User{}
+
+	err := self.cUsers().Find(bson.M{"name": name, "password": password}).One(&user)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
 }
 
 func (self *Storage) AddUser(user *User) error {
@@ -175,4 +170,8 @@ func (self *Storage) AddUser(user *User) error {
 	}
 
 	return nil
+}
+
+func (self *Storage) UpdateLoginInfo(id bson.ObjectId, sessionId string, expires int64) error {
+	return self.cUsers().UpdateId(id, bson.M{"$set": bson.M{"session_id": sessionId, "session_expires": expires}})
 }
