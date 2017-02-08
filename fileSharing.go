@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	SessionName               = "SessionId"
-	SessionExpirePeriod       = 5 * 60 // sec
+	SessionExpirePeriod       = 20 // sec
 	LoginRequestMaxCount      = 3
 	LoginRequestWaitingPeriod = 60 // sec
 )

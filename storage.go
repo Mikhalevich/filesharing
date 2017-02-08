@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha1"
+	"errors"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -21,6 +22,15 @@ var (
 
 type TypePassword [sha1.Size]byte
 
+func (self TypePassword) isEmpty() bool {
+	for _, value := range self {
+		if value != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 type LoginRequest struct {
 	Id          bson.ObjectId `bson:"_id,omitempty"`
 	UserName    string        `bson:"name"`
@@ -29,12 +39,26 @@ type LoginRequest struct {
 	Count       int           `bson:"count"`
 }
 
+type Session struct {
+	Id      string `bson:"id"`
+	Expires int64  `bson:"expires"`
+}
+
 type User struct {
-	Id             bson.ObjectId `bson:"_id,omitempty"`
-	Name           string        `bson:"name"`
-	Password       TypePassword  `bson:"password"`
-	SessionId      string        `bson:"session_id"`
-	SessionExpires int64         `bson:"session_expires"`
+	Id       bson.ObjectId `bson:"_id,omitempty"`
+	Name     string        `bson:"name"`
+	Password TypePassword  `bson:"password"`
+	Sessions []Session     `bson:"sessions"`
+}
+
+func (self User) SessionById(id string) (Session, error) {
+	for _, session := range self.Sessions {
+		if session.Id == id {
+			return session, nil
+		}
+	}
+
+	return Session{}, errors.New("Not found")
 }
 
 func init() {
@@ -153,11 +177,29 @@ func (self *Storage) ClearRequests() error {
 	return err
 }
 
+func (self *Storage) UserByName(name string) (User, error) {
+	user := User{}
+	err := self.cUsers().Find(bson.M{"name": name}).One(&user)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}
+
 func (self *Storage) UserByNameAndPassword(name string, password TypePassword) (User, error) {
 	user := User{}
-
 	err := self.cUsers().Find(bson.M{"name": name, "password": password}).One(&user)
 	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}
+
+func (self *Storage) UserBySessionId(sessionId string) (User, error) {
+	user := User{}
+	if err := self.cUsers().Find(bson.M{"session.id": sessionId}).One(&user); err != nil {
 		return User{}, err
 	}
 
@@ -173,5 +215,5 @@ func (self *Storage) AddUser(user *User) error {
 }
 
 func (self *Storage) UpdateLoginInfo(id bson.ObjectId, sessionId string, expires int64) error {
-	return self.cUsers().UpdateId(id, bson.M{"$set": bson.M{"session_id": sessionId, "session_expires": expires}})
+	return self.cUsers().UpdateId(id, bson.M{"$push": bson.M{"sessions": bson.M{"id": sessionId, "expires": expires}}})
 }

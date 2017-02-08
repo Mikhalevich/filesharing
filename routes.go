@@ -1,9 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"os"
+	"path"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -18,71 +22,74 @@ type Route struct {
 
 type Routes []Route
 
-var routes = Routes{
-	Route{
-		"/",
-		false,
-		"GET",
-		false,
-		http.HandlerFunc(rootHandler),
-	},
-	Route{
-		"/res/",
-		true,
-		"GET",
-		false,
-		http.StripPrefix("/res/", http.FileServer(http.Dir("res"))),
-	},
-	Route{
-		"/register/",
-		false,
-		"GET,POST",
-		false,
-		http.HandlerFunc(registerHandler),
-	},
-	Route{
-		"/login/{storage}/",
-		false,
-		"GET,POST",
-		false,
-		http.HandlerFunc(loginHandler),
-	},
-	Route{
-		"/{storage}/",
-		false,
-		"GET",
-		true,
-		http.HandlerFunc(viewStorageHandler),
-	},
-	Route{
-		"/{storage}/",
-		true,
-		"GET",
-		true,
-		http.FileServer(http.Dir(rootStorageDir)),
-	},
-	Route{
-		"/{storage}/upload/",
-		false,
-		"POST",
-		true,
-		http.HandlerFunc(uploadHandler),
-	},
-	Route{
-		"/{storage}/remove/",
-		false,
-		"POST",
-		true,
-		http.HandlerFunc(removeHandler),
-	},
-	Route{
-		"/{storage}/shareText/",
-		false,
-		"POST",
-		true,
-		http.HandlerFunc(shareTextHandler),
-	},
-}
+var (
+	storageWithoutAuth map[string]bool = map[string]bool{"common": true}
+	routes                             = Routes{
+		Route{
+			"/",
+			false,
+			"GET",
+			false,
+			http.HandlerFunc(rootHandler),
+		},
+		Route{
+			"/res/",
+			true,
+			"GET",
+			false,
+			http.StripPrefix("/res/", http.FileServer(http.Dir("res"))),
+		},
+		Route{
+			"/register/",
+			false,
+			"GET,POST",
+			false,
+			http.HandlerFunc(registerHandler),
+		},
+		Route{
+			"/login/{storage}/",
+			false,
+			"GET,POST",
+			false,
+			http.HandlerFunc(loginHandler),
+		},
+		Route{
+			"/{storage}/",
+			false,
+			"GET",
+			true,
+			http.HandlerFunc(viewStorageHandler),
+		},
+		Route{
+			"/{storage}/",
+			true,
+			"GET",
+			true,
+			http.FileServer(http.Dir(rootStorageDir)),
+		},
+		Route{
+			"/{storage}/upload/",
+			false,
+			"POST",
+			true,
+			http.HandlerFunc(uploadHandler),
+		},
+		Route{
+			"/{storage}/remove/",
+			false,
+			"POST",
+			true,
+			http.HandlerFunc(removeHandler),
+		},
+		Route{
+			"/{storage}/shareText/",
+			false,
+			"POST",
+			true,
+			http.HandlerFunc(shareTextHandler),
+		},
+	}
+)
 
 func recoverHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -100,24 +107,78 @@ func recoverHandler(next http.Handler) http.Handler {
 func checkAuth(next http.Handler, needAuth bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		storageName := storageVar(r)
-		_, err := os.Stat(storagePath(storageName))
-		if err != nil {
-			if os.IsNotExist(err) {
-				http.NotFound(w, r)
-			} else {
-				respondError(err, w, http.StatusInternalServerError)
-			}
-			return
-		}
 
 		if !needAuth {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		//todo: check auth
+		if storageName == "" {
+			log.Println(fmt.Sprintf("Storage name is empty for %s", r.URL))
+			next.ServeHTTP(w, r)
+			return
+		}
 
-		next.ServeHTTP(w, r)
+		if _, ok := storageWithoutAuth[storageName]; ok {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		storage := NewStorage()
+		defer storage.Close()
+
+		user, err := storage.UserByName(storageName)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		// check directory
+		_, err = os.Stat(storagePath(storageName))
+		if err != nil {
+			if os.IsNotExist(err) {
+				err = os.Mkdir(path.Join(rootStorageDir, storageName), os.ModePerm)
+				if err != nil {
+					respondError(err, w, http.StatusInternalServerError)
+					return
+				}
+			} else {
+				respondError(err, w, http.StatusInternalServerError)
+			}
+		}
+
+		if user.Password.isEmpty() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		authorized := false
+		defer func() {
+			if authorized {
+				next.ServeHTTP(w, r)
+			} else {
+				http.Redirect(w, r, "/login/"+storageName, http.StatusFound)
+			}
+		}()
+
+		cookies := r.Cookies()
+		for _, cook := range cookies {
+			if cook.Name == storageName {
+				session, err := user.SessionById(cook.Value)
+				if err != nil {
+					removeCookie(w, storageName)
+					return
+				}
+
+				if session.Expires < time.Now().Unix() {
+					removeCookie(w, storageName)
+					return
+				}
+
+				authorized = true
+				return
+			}
+		}
 	})
 }
 

@@ -34,34 +34,52 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		userInfo.StorageName = r.FormValue("name")
 		userInfo.Password = r.FormValue("password")
 
+		if userInfo.StorageName == "" {
+			userInfo.AddError("name", "Please specify storage name")
+		}
+
+		if userInfo.Password == "" {
+			userInfo.AddError("password", "Please enter password")
+		}
+
+		if len(userInfo.Errors) > 0 {
+			return
+		}
+
 		storage := NewStorage()
 		defer storage.Close()
 
 		sessionId := generateRandomId(32)
-		var sessionExpires int64 = 0
+		sessionExpires := sessionExpirationPeriodInSec()
 
 		user := &User{
-			Name:           userInfo.StorageName,
-			Password:       crypt(userInfo.Password),
-			SessionId:      sessionId,
-			SessionExpires: sessionExpires,
+			Name:     userInfo.StorageName,
+			Password: crypt(userInfo.Password),
+			Sessions: []Session{
+				Session{
+					Id:      sessionId,
+					Expires: sessionExpires,
+				},
+			},
 		}
 
 		err := storage.AddUser(user)
 		if err != nil {
-			userInfo.AddError("common", "User with this name exists already")
+			userInfo.AddError("common", "Storage with this name already exists")
 			return
 		}
 
 		err = os.Mkdir(path.Join(rootStorageDir, userInfo.StorageName), os.ModePerm)
 		if err != nil {
-			userInfo.AddError("common", "Unable to create user directory")
-			return
+			if !os.IsExist(err) {
+				userInfo.AddError("common", "Unable to create storage directory")
+				return
+			}
 		}
 
 		renderTemplate = false
-		setUserCookie(w, sessionId)
-		http.Redirect(w, r, "/", http.StatusFound)
+		setUserCookie(w, userInfo.StorageName, sessionId, sessionExpires)
+		http.Redirect(w, r, "/"+userInfo.StorageName, http.StatusFound)
 	}
 }
 
@@ -106,7 +124,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 				if allowed {
 					storage.ResetRequestCounter(loginRequest)
 				} else {
-					userInfo.AddError("common", "Request is not allowed, please wait %d seconds", LoginRequestWaitingPeriod)
+					userInfo.AddError("common", "Request is not allowed, please wait %d seconds", timeDelta)
 					return
 				}
 			}
@@ -114,7 +132,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 		user, err := storage.UserByNameAndPassword(storageName, crypt(userInfo.Password))
 		if err != nil {
-			userInfo.AddError("common", "Invalid username or password")
+			userInfo.AddError("common", "Invalid storage name or password")
 			err = storage.AddRequest(storageName, userHost)
 			if err != nil {
 				log.Println("Error in add request: ", err)
@@ -124,20 +142,20 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 		err = storage.RemoveRequest(storageName, userHost)
 		if err != nil {
-			log.Println("Unable to remove request", err)
+			log.Println("Unable to remove request:", err)
 			// continue programm execution
 		}
 
 		sessionId := generateRandomId(32)
-		currentTime := time.Now().Unix()
-		err = storage.UpdateLoginInfo(user.Id, sessionId, currentTime+SessionExpirePeriod)
+		expires := sessionExpirationPeriodInSec()
+		err = storage.UpdateLoginInfo(user.Id, sessionId, expires)
 		if err != nil {
 			userInfo.AddError("common", "Internal server error, please try again later")
 			log.Println("Unable to update last login info", err)
 		} else {
 			renderTemplate = false
-			setUserCookie(w, sessionId)
-			http.Redirect(w, r, "/", http.StatusFound)
+			setUserCookie(w, storageName, sessionId, expires)
+			http.Redirect(w, r, "/"+storageName, http.StatusFound)
 			return
 		}
 	}
