@@ -214,6 +214,6 @@ func (self *Storage) AddUser(user *User) error {
 	return nil
 }
 
-func (self *Storage) UpdateLoginInfo(id bson.ObjectId, sessionId string, expires int64) error {
+func (self *Storage) AddSession(id bson.ObjectId, sessionId string, expires int64) error {
 	return self.cUsers().UpdateId(id, bson.M{"$push": bson.M{"sessions": bson.M{"id": sessionId, "expires": expires}}})
 }

@@ -34,8 +34,14 @@ func crypt(password string) [sha1.Size]byte {
 	return sha1.Sum([]byte(password))
 }
 
-func sessionExpirationPeriodInSec() int64 {
-	return time.Now().Unix() + SessionExpirePeriod
+func newSessionParams() (string, int64) {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+	id := base64.URLEncoding.EncodeToString(bytes)
+
+	expire := time.Now().Unix() + SessionExpirePeriod
+
+	return id, expire
 }
 
 func setUserCookie(w http.ResponseWriter, sessionName, sessionId string, expires int64) {
@@ -45,11 +51,4 @@ func setUserCookie(w http.ResponseWriter, sessionName, sessionId string, expires
 
 func removeCookie(w http.ResponseWriter, sessionName string) {
 	http.SetCookie(w, &http.Cookie{Name: sessionName, Value: "", Path: "/", Expires: time.Unix(0, 0), HttpOnly: true})
-}
-
-func generateRandomId(size int) string {
-	bytes := make([]byte, size)
-	rand.Read(bytes)
-
-	return base64.URLEncoding.EncodeToString(bytes)
 }

@@ -49,8 +49,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		storage := NewStorage()
 		defer storage.Close()
 
-		sessionId := generateRandomId(32)
-		sessionExpires := sessionExpirationPeriodInSec()
+		sessionId, sessionExpires := newSessionParams()
 
 		user := &User{
 			Name:     userInfo.StorageName,
@@ -146,15 +145,14 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			// continue programm execution
 		}
 
-		sessionId := generateRandomId(32)
-		expires := sessionExpirationPeriodInSec()
-		err = storage.UpdateLoginInfo(user.Id, sessionId, expires)
+		sessionId, sessionExpires := newSessionParams()
+		err = storage.AddSession(user.Id, sessionId, sessionExpires)
 		if err != nil {
 			userInfo.AddError("common", "Internal server error, please try again later")
 			log.Println("Unable to update last login info", err)
 		} else {
 			renderTemplate = false
-			setUserCookie(w, storageName, sessionId, expires)
+			setUserCookie(w, storageName, sessionId, sessionExpires)
 			http.Redirect(w, r, "/"+storageName, http.StatusFound)
 			return
 		}
