@@ -85,7 +85,6 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	userInfo := NewTemplatePassword()
 	renderTemplate := true
-
 	defer func() {
 		if renderTemplate {
 			if err := templates.ExecuteTemplate(w, "login.html", userInfo); err != nil {
@@ -94,8 +93,34 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	storageName := storageVar(r)
+
+	cookies := r.Cookies()
+	for _, cook := range cookies {
+		if cook.Name == storageName {
+
+			storage := NewStorage()
+			defer storage.Close()
+
+			user, err := storage.UserByName(storageName)
+			if err != nil {
+				removeCookie(w, storageName)
+				break
+			}
+			session, err := user.SessionById(cook.Value)
+			if err != nil {
+				removeCookie(w, storageName)
+				break
+			}
+
+			if !isExpired(session.Expires) {
+				userInfo.AddError("common", "Already registered")
+				return
+			}
+		}
+	}
+
 	if r.Method == "POST" {
-		storageName := storageVar(r)
 		userInfo.Password = r.FormValue("password")
 
 		if storageName == "" {
@@ -123,7 +148,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 				if allowed {
 					storage.ResetRequestCounter(loginRequest)
 				} else {
-					userInfo.AddError("common", "Request is not allowed, please wait %d seconds", timeDelta)
+					userInfo.AddError("common", "Request is not allowed, please wait %d seconds", LoginRequestWaitingPeriod-timeDelta)
 					return
 				}
 			}
@@ -143,6 +168,11 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("Unable to remove request:", err)
 			// continue programm execution
+		}
+
+		err = storage.RemoveExpiredSessions(user.Id, time.Now().Unix())
+		if err != nil {
+			log.Println("Unable to remove expired sessions: ", err)
 		}
 
 		sessionId, sessionExpires := newSessionParams()

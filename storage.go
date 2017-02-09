@@ -217,3 +217,7 @@ func (self *Storage) AddUser(user *User) error {
 func (self *Storage) AddSession(id bson.ObjectId, sessionId string, expires int64) error {
 	return self.cUsers().UpdateId(id, bson.M{"$push": bson.M{"sessions": bson.M{"id": sessionId, "expires": expires}}})
 }
+
+func (self *Storage) RemoveExpiredSessions(id bson.ObjectId, checkTime int64) error {
+	return self.cUsers().UpdateId(id, bson.M{"$pull": bson.M{"sessions": bson.M{"expires": bson.M{"$lt": checkTime}}}})
+}

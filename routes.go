@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -170,7 +169,7 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 					return
 				}
 
-				if session.Expires < time.Now().Unix() {
+				if isExpired(session.Expires) {
 					removeCookie(w, storageName)
 					return
 				}

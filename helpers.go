@@ -44,6 +44,10 @@ func newSessionParams() (string, int64) {
 	return id, expire
 }
 
+func isExpired(sessionTime int64) bool {
+	return sessionTime < time.Now().Unix()
+}
+
 func setUserCookie(w http.ResponseWriter, sessionName, sessionId string, expires int64) {
 	cookie := http.Cookie{Name: sessionName, Value: sessionId, Path: "/", Expires: time.Unix(expires, 0), HttpOnly: true}
 	http.SetCookie(w, &cookie)
