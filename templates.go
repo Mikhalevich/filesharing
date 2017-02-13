@@ -7,7 +7,7 @@ import (
 
 var (
 	funcs     = template.FuncMap{"increment": func(i int) int { i++; return i }}
-	templates = template.Must(template.New("fileSharing").Funcs(funcs).ParseFiles("res/index.html", "res/login.html", "res/register.html"))
+	templates = template.Must(template.New("fileSharing").Funcs(funcs).ParseFiles("res/view.html", "res/login.html", "res/register.html"))
 )
 
 type TemplateBase struct {

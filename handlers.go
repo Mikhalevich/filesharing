@@ -203,7 +203,7 @@ func viewStorageHandler(w http.ResponseWriter, r *http.Request) {
 		FileInfoList []fileInfo.FileInfo
 	}{title, fiList}
 
-	err = templates.ExecuteTemplate(w, "index.html", page)
+	err = templates.ExecuteTemplate(w, "view.html", page)
 	if err != nil {
 		log.Println(err)
 	}
