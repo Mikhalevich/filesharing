@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	SessionExpirePeriod       = 1 * 60 * 60 * 24 * 30 * 6 // sec
+	SessionExpirePeriod       = 1 * 60 * 60 * 24 * 30 // sec
 	LoginRequestMaxCount      = 3
 	LoginRequestWaitingPeriod = 60 // sec
 )
