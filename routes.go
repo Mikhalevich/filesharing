@@ -20,8 +20,8 @@ type Route struct {
 type Routes []Route
 
 var (
-	storageWithoutAuth map[string]bool = map[string]bool{"common": true}
-	routes                             = Routes{
+	staticStorages map[string]bool = map[string]bool{"common": true, "res": true}
+	routes                         = Routes{
 		Route{
 			"/",
 			false,
@@ -117,7 +117,7 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 			return
 		}
 
-		if _, ok := storageWithoutAuth[storageName]; ok {
+		if _, ok := staticStorages[storageName]; ok {
 			err = checkStorage(storageName)
 			if err != nil {
 				respondError(err, w, http.StatusInternalServerError)

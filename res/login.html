@@ -1,16 +1,34 @@
 <html>
-	<body>
-		<h1>Login</h1>
-		<form method="post" action="">
-			<fieldset>
-		    	<label for="password">Password</label>
-		    	<input type="password" id="password" name="password">
-			</fieldset>
-			<br/>
-		    <fieldset class="center">
-				<button type="submit">Login</button>
-			</fieldset>
-		</form>
-		{{range $key, $value := .Errors}} <p>{{$value}}</p> {{end}}
+	<head>
+		<link href="/res/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
+		<link href="/res/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+		<style>
+			body{padding-top:20px;}
+		</style>
+	</head>
+
+	<body>	
+		<div class="container">
+			<div class="row">
+				<div class="col-md-4 col-md-offset-4">
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h3 class="panel-title">Please sign in</h3>
+						</div>
+						<div class="panel-body">
+							<form accept-charset="UTF-8" role="form" method="post">
+								<fieldset>
+									<div class="form-group">
+										<input class="form-control" placeholder="Password" name="password" type="password" value="">
+									</div>
+									<input class="btn btn-lg btn-success btn-block" type="submit" value="Login">
+								</fieldset>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		{{range $key, $value := .Errors}} <p align="center">{{$value}}</p> {{end}}
 	</body>
 </html>

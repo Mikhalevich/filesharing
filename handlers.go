@@ -46,6 +46,11 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if _, ok := staticStorages[userInfo.StorageName]; ok {
+			userInfo.AddError("common", "Storage with this name already exists")
+			return
+		}
+
 		storage := NewStorage()
 		defer storage.Close()
 
