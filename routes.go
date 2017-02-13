@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"path"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -106,6 +104,15 @@ func recoverHandler(next http.Handler) http.Handler {
 func checkAuth(next http.Handler, needAuth bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		storageName := storageVar(r)
+		var err error
+
+		if storageName != "" {
+			err = checkStorage(storageName)
+			if err != nil {
+				respondError(err, w, http.StatusInternalServerError)
+				return
+			}
+		}
 
 		if !needAuth {
 			next.ServeHTTP(w, r)
@@ -130,20 +137,6 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 		if err != nil {
 			http.NotFound(w, r)
 			return
-		}
-
-		// check directory
-		_, err = os.Stat(storagePath(storageName))
-		if err != nil {
-			if os.IsNotExist(err) {
-				err = os.Mkdir(path.Join(rootStorageDir, storageName), os.ModePerm)
-				if err != nil {
-					respondError(err, w, http.StatusInternalServerError)
-					return
-				}
-			} else {
-				respondError(err, w, http.StatusInternalServerError)
-			}
 		}
 
 		if user.Password.isEmpty() {

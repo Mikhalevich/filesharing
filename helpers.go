@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"log"
 	"net/http"
+	"os"
 	"path"
 	"time"
 
@@ -14,6 +15,17 @@ import (
 
 func storagePath(storageName string) string {
 	return path.Join(rootStorageDir, storageName)
+}
+
+func checkStorage(storageName string) error {
+	_, err := os.Stat(storagePath(storageName))
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = os.Mkdir(storagePath(storageName), os.ModePerm)
+		}
+	}
+
+	return err
 }
 
 func respondError(err error, w http.ResponseWriter, httpStatusCode int) bool {
