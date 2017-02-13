@@ -106,14 +106,6 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 		storageName := storageVar(r)
 		var err error
 
-		if storageName != "" {
-			err = checkStorage(storageName)
-			if err != nil {
-				respondError(err, w, http.StatusInternalServerError)
-				return
-			}
-		}
-
 		if !needAuth {
 			next.ServeHTTP(w, r)
 			return
@@ -126,6 +118,12 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 		}
 
 		if _, ok := storageWithoutAuth[storageName]; ok {
+			err = checkStorage(storageName)
+			if err != nil {
+				respondError(err, w, http.StatusInternalServerError)
+				return
+			}
+
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -136,6 +134,12 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 		user, err := storage.UserByName(storageName)
 		if err != nil {
 			http.NotFound(w, r)
+			return
+		}
+
+		err = checkStorage(storageName)
+		if err != nil {
+			respondError(err, w, http.StatusInternalServerError)
 			return
 		}
 
