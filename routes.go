@@ -51,6 +51,13 @@ var (
 			http.HandlerFunc(loginHandler),
 		},
 		Route{
+			"/{storage}/permanent/",
+			false,
+			"GET",
+			true,
+			http.HandlerFunc(viewPermanentHandler),
+		},
+		Route{
 			"/{storage}/",
 			false,
 			"GET",
@@ -69,21 +76,42 @@ var (
 			false,
 			"POST",
 			true,
-			http.HandlerFunc(uploadHandler),
+			http.HandlerFunc(uploadStorageHandler),
+		},
+		Route{
+			"/{storage}/permanent/upload/",
+			false,
+			"POST",
+			true,
+			http.HandlerFunc(uploadPermanentHandler),
 		},
 		Route{
 			"/{storage}/remove/",
 			false,
 			"POST",
 			true,
-			http.HandlerFunc(removeHandler),
+			http.HandlerFunc(removeStorageHandler),
+		},
+		Route{
+			"/{storage}/permanent/remove/",
+			false,
+			"POST",
+			true,
+			http.HandlerFunc(removePermanentHandler),
 		},
 		Route{
 			"/{storage}/shareText/",
 			false,
 			"POST",
 			true,
-			http.HandlerFunc(shareTextHandler),
+			http.HandlerFunc(shareTextStorageHandler),
+		},
+		Route{
+			"/{storage}/permanent/shareText/",
+			false,
+			"POST",
+			true,
+			http.HandlerFunc(shareTextPermanentHandler),
 		},
 	}
 )
@@ -118,7 +146,7 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 		}
 
 		if _, ok := staticStorages[storageName]; ok {
-			err = checkStorage(storageName)
+			err = checkStorage(storageName, false)
 			if err != nil {
 				respondError(err, w, http.StatusInternalServerError)
 				return
@@ -137,7 +165,7 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 			return
 		}
 
-		err = checkStorage(storageName)
+		err = checkStorage(storageName, true)
 		if err != nil {
 			respondError(err, w, http.StatusInternalServerError)
 			return

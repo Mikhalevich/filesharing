@@ -17,11 +17,32 @@ func storagePath(storageName string) string {
 	return path.Join(rootStorageDir, storageName)
 }
 
-func checkStorage(storageName string) error {
+func permanentPath(storageName string) string {
+	return path.Join(storagePath(storageName), permanentDir)
+}
+
+func createSkel(storageName string, permanent bool) error {
+	sPath := storagePath(storageName)
+	err := os.Mkdir(sPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	if permanent {
+		err = os.Mkdir(path.Join(sPath, permanentDir), os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func checkStorage(storageName string, permanent bool) error {
 	_, err := os.Stat(storagePath(storageName))
 	if err != nil {
 		if os.IsNotExist(err) {
-			err = os.Mkdir(storagePath(storageName), os.ModePerm)
+			err = createSkel(storageName, permanent)
 		}
 	}
 

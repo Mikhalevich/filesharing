@@ -67,6 +67,9 @@ func (fil FileInfoList) Swap(i, j int) {
 }
 
 func (fil FileInfoList) Less(i, j int) bool {
+	if fil[i].IsDir() && fil[i].Name() == "permanent" {
+		return true
+	}
 	return fil[i].ModTime().After(fil[j].ModTime())
 }
 
@@ -99,7 +102,7 @@ func ListDir(dirPath string) FileInfoList {
 	return fiList
 }
 
-func CleanDir(dirPath string, t time.Time) {
+func CleanDir(dirPath string, protectedDir string, t time.Time) {
 	if !path.IsAbs(dirPath) {
 		dirPath, _ = filepath.Abs(dirPath)
 	}
@@ -118,18 +121,37 @@ func CleanDir(dirPath string, t time.Time) {
 		c := tick()
 
 		for now := range c {
-			if err := os.RemoveAll(dirPath); err != nil {
-				log.Println(err.Error())
-
+			storages, err := ioutil.ReadDir(dirPath)
+			if err != nil {
+				log.Println(err)
 				return
 			}
 
-			log.Printf("time: %v; cleaning dir: %q\n", now, dirPath)
+			for _, storage := range storages {
+				if !storage.IsDir() {
+					continue
+				}
 
-			if err := os.Mkdir(dirPath, 0777); err != nil {
-				log.Println(err.Error())
+				sPath := path.Join(dirPath, storage.Name())
 
-				return
+				log.Printf("time: %v; cleaning dir: %q\n", now, sPath)
+
+				files, err := ioutil.ReadDir(sPath)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+
+				for _, file := range files {
+					if file.IsDir() && file.Name() == protectedDir {
+						continue
+					}
+
+					err = os.Remove(path.Join(sPath, file.Name()))
+					if err != nil {
+						log.Println(err)
+					}
+				}
 			}
 
 			break

@@ -21,6 +21,7 @@ var (
 	cleanTime      = flag.String("time", "23:59", "time when storage will be clean")
 	title          = "Duplo"
 	rootStorageDir = "storage"
+	permanentDir   = "permanent"
 	tempDir        = path.Join(os.TempDir(), title)
 )
 
@@ -49,7 +50,7 @@ func main() {
 	}
 
 	now := time.Now()
-	go fileInfo.CleanDir(rootStorageDir,
+	go fileInfo.CleanDir(rootStorageDir, permanentDir,
 		time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), now.Second(), now.Nanosecond(), now.Location()))
 
 	log.Println("Running at " + *host)
