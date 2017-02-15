@@ -192,7 +192,8 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func viewHandler(w http.ResponseWriter, sPath string) {
+func viewHandler(w http.ResponseWriter, r *http.Request) {
+	sPath := contextStorage(r)
 	_, err := os.Stat(sPath)
 	if respondError(err, w, http.StatusInternalServerError) {
 		return
@@ -210,17 +211,7 @@ func viewHandler(w http.ResponseWriter, sPath string) {
 	}
 }
 
-func viewStorageHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := storagePath(storageVar(r))
-	viewHandler(w, sPath)
-}
-
-func viewPermanentHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := permanentPath(storageVar(r))
-	viewHandler(w, sPath)
-}
-
-func uploadHandler(w http.ResponseWriter, r *http.Request, sPath string) {
+func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
 		return
@@ -268,6 +259,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request, sPath string) {
 		}
 	}
 
+	sPath := contextStorage(r)
 	fil := fileInfo.ListDir(tempDir)
 	for _, fi := range fil {
 		err = os.Rename(path.Join(tempDir, fi.Name()), path.Join(sPath, fi.Name()))
@@ -279,15 +271,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request, sPath string) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func uploadStorageHandler(w http.ResponseWriter, r *http.Request) {
-	uploadHandler(w, r, storagePath(storageVar(r)))
-}
-
-func uploadPermanentHandler(w http.ResponseWriter, r *http.Request) {
-	uploadHandler(w, r, permanentPath(storageVar(r)))
-}
-
-func removeHandler(w http.ResponseWriter, r *http.Request, sPath string) {
+func removeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
 		return
@@ -299,6 +283,7 @@ func removeHandler(w http.ResponseWriter, r *http.Request, sPath string) {
 		return
 	}
 
+	sPath := contextStorage(r)
 	fiList := fileInfo.ListDir(sPath)
 	if !fiList.Exist(fileName) {
 		respondError(errors.New(fileName+" doesn't exist"), w, http.StatusBadRequest)
@@ -313,15 +298,7 @@ func removeHandler(w http.ResponseWriter, r *http.Request, sPath string) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func removeStorageHandler(w http.ResponseWriter, r *http.Request) {
-	removeHandler(w, r, storagePath(storageVar(r)))
-}
-
-func removePermanentHandler(w http.ResponseWriter, r *http.Request) {
-	removeHandler(w, r, permanentPath(storageVar(r)))
-}
-
-func shareTextHandler(w http.ResponseWriter, r *http.Request, sPath string) {
+func shareTextHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
 		return
@@ -335,6 +312,7 @@ func shareTextHandler(w http.ResponseWriter, r *http.Request, sPath string) {
 		return
 	}
 
+	sPath := contextStorage(r)
 	title = fileInfo.UniqueName(title, sPath)
 
 	file, err := os.Create(path.Join(sPath, title))
@@ -349,12 +327,4 @@ func shareTextHandler(w http.ResponseWriter, r *http.Request, sPath string) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
-
-func shareTextStorageHandler(w http.ResponseWriter, r *http.Request) {
-	shareTextHandler(w, r, storagePath(storageVar(r)))
-}
-
-func shareTextPermanentHandler(w http.ResponseWriter, r *http.Request) {
-	shareTextHandler(w, r, permanentPath(storageVar(r)))
 }

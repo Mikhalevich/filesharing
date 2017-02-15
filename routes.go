@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 )
 
@@ -18,6 +19,10 @@ type Route struct {
 }
 
 type Routes []Route
+
+const (
+	contextStoragePath = "storagePath"
+)
 
 var (
 	staticStorages map[string]bool = map[string]bool{"common": true, "res": true}
@@ -48,21 +53,21 @@ var (
 			false,
 			"GET,POST",
 			false,
-			http.HandlerFunc(loginHandler),
+			storePath(http.HandlerFunc(loginHandler)),
 		},
 		Route{
 			"/{storage}/permanent/",
 			false,
 			"GET",
 			true,
-			http.HandlerFunc(viewPermanentHandler),
+			storePermanentPath(http.HandlerFunc(viewHandler)),
 		},
 		Route{
 			"/{storage}/",
 			false,
 			"GET",
 			true,
-			http.HandlerFunc(viewStorageHandler),
+			storePath(http.HandlerFunc(viewHandler)),
 		},
 		Route{
 			"/{storage}/",
@@ -76,45 +81,75 @@ var (
 			false,
 			"POST",
 			true,
-			http.HandlerFunc(uploadStorageHandler),
+			storePath(http.HandlerFunc(uploadHandler)),
 		},
 		Route{
 			"/{storage}/permanent/upload/",
 			false,
 			"POST",
 			true,
-			http.HandlerFunc(uploadPermanentHandler),
+			storePermanentPath(http.HandlerFunc(uploadHandler)),
 		},
 		Route{
 			"/{storage}/remove/",
 			false,
 			"POST",
 			true,
-			http.HandlerFunc(removeStorageHandler),
+			storePath(http.HandlerFunc(removeHandler)),
 		},
 		Route{
 			"/{storage}/permanent/remove/",
 			false,
 			"POST",
 			true,
-			http.HandlerFunc(removePermanentHandler),
+			storePermanentPath(http.HandlerFunc(removeHandler)),
 		},
 		Route{
 			"/{storage}/shareText/",
 			false,
 			"POST",
 			true,
-			http.HandlerFunc(shareTextStorageHandler),
+			storePath(http.HandlerFunc(shareTextHandler)),
 		},
 		Route{
 			"/{storage}/permanent/shareText/",
 			false,
 			"POST",
 			true,
-			http.HandlerFunc(shareTextPermanentHandler),
+			storePermanentPath(http.HandlerFunc(shareTextHandler)),
 		},
 	}
 )
+
+func contextStorage(r *http.Request) string {
+	return context.Get(r, contextStoragePath).(string)
+}
+
+func storePath(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		storage := mux.Vars(r)["storage"]
+		if storage == "" {
+			log.Printf("Invalid storage request, url = %s", r.URL)
+		} else {
+			context.Set(r, contextStoragePath, storagePath(storage))
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func storePermanentPath(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		storage := mux.Vars(r)["storage"]
+		if storage == "" {
+			log.Printf("Invalid storage request, url = %s", r.URL)
+		} else {
+			context.Set(r, contextStoragePath, permanentPath(storage))
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
 
 func recoverHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
