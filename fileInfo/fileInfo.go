@@ -75,6 +75,10 @@ func (fil FileInfoList) Less(i, j int) bool {
 		if fil[i].IsDir() && fil[i].Name() == PermanentDir {
 			return true
 		}
+
+		if fil[j].IsDir() && fil[j].Name() == PermanentDir {
+			return false
+		}
 	}
 
 	return fil[i].ModTime().After(fil[j].ModTime())
