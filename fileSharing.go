@@ -49,6 +49,7 @@ func main() {
 		usage()
 	}
 
+	fileInfo.PermanentDir = permanentDir
 	now := time.Now()
 	go fileInfo.CleanDir(rootStorageDir, permanentDir,
 		time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), now.Second(), now.Nanosecond(), now.Location()))

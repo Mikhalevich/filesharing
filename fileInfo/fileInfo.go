@@ -26,6 +26,10 @@ const (
 	YB
 )
 
+var (
+	PermanentDir = ""
+)
+
 func (b ByteSize) String() string {
 	switch {
 	case b >= YB:
@@ -67,9 +71,12 @@ func (fil FileInfoList) Swap(i, j int) {
 }
 
 func (fil FileInfoList) Less(i, j int) bool {
-	if fil[i].IsDir() && fil[i].Name() == "permanent" {
-		return true
+	if PermanentDir != "" {
+		if fil[i].IsDir() && fil[i].Name() == PermanentDir {
+			return true
+		}
 	}
+
 	return fil[i].ModTime().After(fil[j].ModTime())
 }
 
