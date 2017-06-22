@@ -222,6 +222,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sPath := contextStorage(r)
 	for {
 		part, err := mr.NextPart()
 		if err == io.EOF {
@@ -237,7 +238,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		fileName = fileInfo.UniqueName(fileName, rootStorageDir)
+		fileName = fileInfo.UniqueName(fileName, sPath)
 
 		err = func() error {
 			f, err := os.Create(path.Join(tempDir, fileName))
@@ -259,7 +260,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	sPath := contextStorage(r)
 	fil := fileInfo.ListDir(tempDir)
 	for _, fi := range fil {
 		err = os.Rename(path.Join(tempDir, fi.Name()), path.Join(sPath, fi.Name()))
