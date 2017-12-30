@@ -14,11 +14,11 @@ import (
 )
 
 func storagePath(storageName string) string {
-	return path.Join(rootStorageDir, storageName)
+	return path.Join(params.RootStorage, storageName)
 }
 
 func permanentPath(storageName string) string {
-	return path.Join(storagePath(storageName), permanentDir)
+	return path.Join(storagePath(storageName), params.PermanentDir)
 }
 
 func createSkel(storageName string, permanent bool) error {
@@ -29,7 +29,7 @@ func createSkel(storageName string, permanent bool) error {
 	}
 
 	if permanent {
-		err = os.Mkdir(path.Join(sPath, permanentDir), os.ModePerm)
+		err = os.Mkdir(path.Join(sPath, params.PermanentDir), os.ModePerm)
 		if err != nil {
 			return err
 		}

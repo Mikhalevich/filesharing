@@ -203,7 +203,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	page := struct {
 		Title        string
 		FileInfoList []fileInfo.FileInfo
-	}{title, fiList}
+	}{Title, fiList}
 
 	err = templates.ExecuteTemplate(w, "view.html", page)
 	if err != nil {
@@ -241,7 +241,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		fileName = fileInfo.UniqueName(fileName, sPath)
 
 		err = func() error {
-			f, err := os.Create(path.Join(tempDir, fileName))
+			f, err := os.Create(path.Join(params.TempDir, fileName))
 			if err != nil {
 				return err
 			}
@@ -260,9 +260,9 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fil := fileInfo.ListDir(tempDir)
+	fil := fileInfo.ListDir(params.TempDir)
 	for _, fi := range fil {
-		err = os.Rename(path.Join(tempDir, fi.Name()), path.Join(sPath, fi.Name()))
+		err = os.Rename(path.Join(params.TempDir, fi.Name()), path.Join(sPath, fi.Name()))
 		if err != nil {
 			log.Println(err.Error())
 		}

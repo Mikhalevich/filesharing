@@ -26,7 +26,11 @@ const (
 
 var (
 	staticStorages map[string]bool = map[string]bool{"common": true, "res": true}
-	routes                         = Routes{
+	routes         Routes
+)
+
+func makeRoutes() {
+	routes = Routes{
 		Route{
 			"/",
 			false,
@@ -74,7 +78,7 @@ var (
 			true,
 			"GET",
 			true,
-			http.FileServer(http.Dir(rootStorageDir)),
+			http.FileServer(http.Dir(params.RootStorage)),
 		},
 		Route{
 			"/{storage}/upload/",
@@ -119,7 +123,7 @@ var (
 			storePermanentPath(http.HandlerFunc(shareTextHandler)),
 		},
 	}
-)
+}
 
 func contextStorage(r *http.Request) string {
 	return context.Get(r, contextStoragePath).(string)
