@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fileSharing/fileInfo"
 	"log"
 	"net/http"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Mikhalevich/argparser"
+	"github.com/Mikhalevich/filesharing/fileInfo"
 )
 
 const (

@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fileSharing/fileInfo"
 	"io"
 	"log"
 	"net/http"
@@ -10,6 +9,8 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"github.com/Mikhalevich/filesharing/fileInfo"
 )
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
