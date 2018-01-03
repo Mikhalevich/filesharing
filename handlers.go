@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Mikhalevich/filesharing/db"
 	"github.com/Mikhalevich/filesharing/fileInfo"
 )
 
@@ -50,16 +51,16 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		storage := NewStorage()
+		storage := db.NewStorage()
 		defer storage.Close()
 
 		sessionId, sessionExpires := newSessionParams()
 
-		user := &User{
+		user := &db.User{
 			Name:     userInfo.StorageName,
 			Password: crypt(userInfo.Password),
-			Sessions: []Session{
-				Session{
+			Sessions: []db.Session{
+				db.Session{
 					Id:      sessionId,
 					Expires: sessionExpires,
 				},
@@ -103,7 +104,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	for _, cook := range cookies {
 		if cook.Name == storageName {
 
-			storage := NewStorage()
+			storage := db.NewStorage()
 			defer storage.Close()
 
 			user, err := storage.UserByName(storageName)
@@ -139,7 +140,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		storage := NewStorage()
+		storage := db.NewStorage()
 		defer storage.Close()
 
 		userHost := r.RemoteAddr[:strings.Index(r.RemoteAddr, ":")]

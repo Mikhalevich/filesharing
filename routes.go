@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Mikhalevich/filesharing/db"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 )
@@ -195,7 +196,7 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 			return
 		}
 
-		storage := NewStorage()
+		storage := db.NewStorage()
 		defer storage.Close()
 
 		user, err := storage.UserByName(storageName)
@@ -210,7 +211,7 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 			return
 		}
 
-		if user.Password.isEmpty() {
+		if user.Password.IsEmpty() {
 			next.ServeHTTP(w, r)
 			return
 		}

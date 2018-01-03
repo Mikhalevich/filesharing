@@ -9,7 +9,7 @@ import (
 
 type TypePassword [sha1.Size]byte
 
-func (self TypePassword) isEmpty() bool {
+func (self TypePassword) IsEmpty() bool {
 	for _, value := range self {
 		if value != 0 {
 			return false
