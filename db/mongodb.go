@@ -1,8 +1,6 @@
-package main
+package db
 
 import (
-	"crypto/sha1"
-	"errors"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -19,47 +17,6 @@ const (
 var (
 	sessionPool *mgo.Session
 )
-
-type TypePassword [sha1.Size]byte
-
-func (self TypePassword) isEmpty() bool {
-	for _, value := range self {
-		if value != 0 {
-			return false
-		}
-	}
-	return true
-}
-
-type LoginRequest struct {
-	Id          bson.ObjectId `bson:"_id,omitempty"`
-	UserName    string        `bson:"name"`
-	RemoteAddr  string        `bson:"remote_addr"`
-	LastRequest int64         `bson:"last_request"`
-	Count       int           `bson:"count"`
-}
-
-type Session struct {
-	Id      string `bson:"id"`
-	Expires int64  `bson:"expires"`
-}
-
-type User struct {
-	Id       bson.ObjectId `bson:"_id,omitempty"`
-	Name     string        `bson:"name"`
-	Password TypePassword  `bson:"password"`
-	Sessions []Session     `bson:"sessions"`
-}
-
-func (self User) SessionById(id string) (Session, error) {
-	for _, session := range self.Sessions {
-		if session.Id == id {
-			return session, nil
-		}
-	}
-
-	return Session{}, errors.New("Not found")
-}
 
 func init() {
 	var err error
