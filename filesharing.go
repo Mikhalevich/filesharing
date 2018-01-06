@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Mikhalevich/argparser"
+	"github.com/Mikhalevich/filesharing/db"
 	"github.com/Mikhalevich/filesharing/fileInfo"
 )
 
@@ -100,9 +101,15 @@ func main() {
 	go fileInfo.CleanDir(params.RootStorage, params.PermanentDir,
 		time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), now.Second(), now.Nanosecond(), now.Location()))
 
-	log.Printf("Running at %s\n", params.Host)
+	// check db
+	if params.AllowPrivate {
+		s := db.NewStorage()
+		s.Close()
+	}
 
 	router := NewRouter(params.AllowPrivate)
+
+	log.Printf("Running at %s\n", params.Host)
 
 	err = http.ListenAndServe(params.Host, router)
 	if err != nil {
