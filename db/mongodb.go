@@ -18,7 +18,11 @@ var (
 	sessionPool *mgo.Session
 )
 
-func init() {
+func initPool() {
+	if sessionPool != nil {
+		return
+	}
+
 	var err error
 	if sessionPool, err = mgo.Dial(DatabaseHost); err != nil {
 		panic(err)
@@ -39,6 +43,7 @@ type Storage struct {
 }
 
 func NewStorage() *Storage {
+	initPool()
 	storage := &Storage{
 		session: sessionPool.Copy(),
 	}
