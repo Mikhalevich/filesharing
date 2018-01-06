@@ -169,6 +169,12 @@ func recoverHandler(next http.Handler) http.Handler {
 	})
 }
 
+func noAuth(next http.Handler, needAuth bool) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
+}
+
 func checkAuth(next http.Handler, needAuth bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		storageName := storageVar(r)
@@ -246,7 +252,9 @@ func checkAuth(next http.Handler, needAuth bool) http.Handler {
 	})
 }
 
-func NewRouter() *mux.Router {
+func NewRouter(allowPrivate bool) *mux.Router {
+	makeRoutes()
+
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range routes {
 		muxRoute := router.NewRoute()
@@ -255,8 +263,12 @@ func NewRouter() *mux.Router {
 		} else {
 			muxRoute.Path(route.Pattern)
 		}
+		authFunc := noAuth
+		if allowPrivate {
+			authFunc = checkAuth
+		}
 		muxRoute.Methods(strings.Split(route.Methods, ",")...)
-		muxRoute.Handler(recoverHandler(checkAuth(route.Handler, route.NeedAuth)))
+		muxRoute.Handler(recoverHandler(authFunc(route.Handler, route.NeedAuth)))
 	}
 
 	return router

@@ -30,6 +30,7 @@ type Params struct {
 	RootStorage  string `json:"storage,omitempty"`
 	PermanentDir string `json:"permanent_dir,omitempty"`
 	TempDir      string `json:"temp_dir,omitempty"`
+	AllowPrivate bool   `json:"allow_private,omitempty"`
 }
 
 func NewParams() *Params {
@@ -39,6 +40,7 @@ func NewParams() *Params {
 		RootStorage:  "storage",
 		PermanentDir: "permanent",
 		TempDir:      path.Join(os.TempDir(), Title),
+		AllowPrivate: true,
 	}
 }
 
@@ -93,8 +95,6 @@ func main() {
 		return
 	}
 
-	makeRoutes()
-
 	fileInfo.PermanentDir = params.PermanentDir
 	now := time.Now()
 	go fileInfo.CleanDir(params.RootStorage, params.PermanentDir,
@@ -102,7 +102,7 @@ func main() {
 
 	log.Printf("Running at %s\n", params.Host)
 
-	router := NewRouter()
+	router := NewRouter(params.AllowPrivate)
 
 	err = http.ListenAndServe(params.Host, router)
 	if err != nil {
