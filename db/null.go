@@ -10,6 +10,10 @@ type Null struct {
 	// pass
 }
 
+func NewNullStorage() *Null {
+	return &Null{}
+}
+
 func (n *Null) Close() {
 	// pass
 }
@@ -26,7 +30,7 @@ func (n *Null) RemoveRequest(name, remoteAddr string) error {
 	return errors.New("Null impl")
 }
 
-func ResetRequestCounter(request LoginRequest) error {
+func (n *Null) ResetRequestCounter(request LoginRequest) error {
 	return errors.New("Null impl")
 }
 

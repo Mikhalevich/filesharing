@@ -7,6 +7,10 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+var (
+	UseDB bool = true
+)
+
 type TypePassword [sha1.Size]byte
 
 func (self TypePassword) IsEmpty() bool {
@@ -61,4 +65,12 @@ type Storager interface {
 	AddUser(user *User) error
 	AddSession(id bson.ObjectId, sessionId string, expires int64) error
 	RemoveExpiredSessions(id bson.ObjectId, checkTime int64) error
+}
+
+func NewStorage() Storager {
+	if UseDB {
+		return NewMgoStorage()
+	}
+
+	return NewNullStorage()
 }

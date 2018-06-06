@@ -101,11 +101,10 @@ func main() {
 	go fileInfo.CleanDir(params.RootStorage, params.PermanentDir,
 		time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), now.Second(), now.Nanosecond(), now.Location()))
 
-	// check db
-	if params.AllowPrivate {
-		s := db.NewStorage()
-		s.Close()
-	}
+	// check db, create indexes, remove temporary data
+	db.UseDB = params.AllowPrivate
+	s := db.NewStorage()
+	s.Close()
 
 	router := NewRouter(params.AllowPrivate)
 
