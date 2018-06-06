@@ -30,61 +30,63 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	if r.Method == "POST" {
-		userInfo.StorageName = r.FormValue("name")
-		userInfo.Password = r.FormValue("password")
-
-		if userInfo.StorageName == "" {
-			userInfo.AddError("name", "Please specify storage name")
-		}
-
-		if userInfo.Password == "" {
-			userInfo.AddError("password", "Please enter password")
-		}
-
-		if len(userInfo.Errors) > 0 {
-			return
-		}
-
-		if _, ok := staticStorages[userInfo.StorageName]; ok {
-			userInfo.AddError("common", "Storage with this name already exists")
-			return
-		}
-
-		storage := db.NewStorage()
-		defer storage.Close()
-
-		sessionId, sessionExpires := newSessionParams()
-
-		user := &db.User{
-			Name:     userInfo.StorageName,
-			Password: crypt(userInfo.Password),
-			Sessions: []db.Session{
-				db.Session{
-					Id:      sessionId,
-					Expires: sessionExpires,
-				},
-			},
-		}
-
-		err := storage.AddUser(user)
-		if err != nil {
-			userInfo.AddError("common", "Storage with this name already exists")
-			return
-		}
-
-		err = createSkel(userInfo.StorageName, true)
-		if err != nil {
-			if !os.IsExist(err) {
-				userInfo.AddError("common", "Unable to create storage directory")
-				return
-			}
-		}
-
-		renderTemplate = false
-		setUserCookie(w, userInfo.StorageName, sessionId, sessionExpires)
-		http.Redirect(w, r, "/"+userInfo.StorageName, http.StatusFound)
+	if r.Method != http.MethodPost {
+		return
 	}
+
+	userInfo.StorageName = r.FormValue("name")
+	userInfo.Password = r.FormValue("password")
+
+	if userInfo.StorageName == "" {
+		userInfo.AddError("name", "Please specify storage name")
+	}
+
+	if userInfo.Password == "" {
+		userInfo.AddError("password", "Please enter password")
+	}
+
+	if len(userInfo.Errors) > 0 {
+		return
+	}
+
+	if _, ok := staticStorages[userInfo.StorageName]; ok {
+		userInfo.AddError("common", "Storage with this name already exists")
+		return
+	}
+
+	storage := db.NewStorage()
+	defer storage.Close()
+
+	sessionId, sessionExpires := newSessionParams()
+
+	user := &db.User{
+		Name:     userInfo.StorageName,
+		Password: crypt(userInfo.Password),
+		Sessions: []db.Session{
+			db.Session{
+				Id:      sessionId,
+				Expires: sessionExpires,
+			},
+		},
+	}
+
+	err := storage.AddUser(user)
+	if err != nil {
+		userInfo.AddError("common", "Storage with this name already exists")
+		return
+	}
+
+	err = createSkel(userInfo.StorageName, true)
+	if err != nil {
+		if !os.IsExist(err) {
+			userInfo.AddError("common", "Unable to create storage directory")
+			return
+		}
+	}
+
+	renderTemplate = false
+	setUserCookie(w, userInfo.StorageName, sessionId, sessionExpires)
+	http.Redirect(w, r, "/"+userInfo.StorageName, http.StatusFound)
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -125,72 +127,74 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if r.Method == "POST" {
-		userInfo.Password = r.FormValue("password")
+	if r.Method != http.MethodPost {
+		return
+	}
 
-		if storageName == "" {
-			userInfo.AddError("name", "Please specify storage name to login")
-		}
+	userInfo.Password = r.FormValue("password")
 
-		if userInfo.Password == "" {
-			userInfo.AddError("password", "Please enter password to login")
-		}
+	if storageName == "" {
+		userInfo.AddError("name", "Please specify storage name to login")
+	}
 
-		if len(userInfo.Errors) > 0 {
-			return
-		}
+	if userInfo.Password == "" {
+		userInfo.AddError("password", "Please enter password to login")
+	}
 
-		storage := db.NewStorage()
-		defer storage.Close()
+	if len(userInfo.Errors) > 0 {
+		return
+	}
 
-		userHost := r.RemoteAddr[:strings.Index(r.RemoteAddr, ":")]
-		loginRequest, err := storage.GetRequest(storageName, userHost)
-		if err == nil {
-			if loginRequest.Count >= LoginRequestMaxCount {
-				timeDelta := time.Now().Unix() - loginRequest.LastRequest
-				allowed := timeDelta >= LoginRequestWaitingPeriod
+	storage := db.NewStorage()
+	defer storage.Close()
 
-				if allowed {
-					storage.ResetRequestCounter(loginRequest)
-				} else {
-					userInfo.AddError("common", "Request is not allowed, please wait %d seconds", LoginRequestWaitingPeriod-timeDelta)
-					return
-				}
+	userHost := r.RemoteAddr[:strings.Index(r.RemoteAddr, ":")]
+	loginRequest, err := storage.GetRequest(storageName, userHost)
+	if err == nil {
+		if loginRequest.Count >= LoginRequestMaxCount {
+			timeDelta := time.Now().Unix() - loginRequest.LastRequest
+			allowed := timeDelta >= LoginRequestWaitingPeriod
+
+			if allowed {
+				storage.ResetRequestCounter(loginRequest)
+			} else {
+				userInfo.AddError("common", "Request is not allowed, please wait %d seconds", LoginRequestWaitingPeriod-timeDelta)
+				return
 			}
 		}
+	}
 
-		user, err := storage.UserByNameAndPassword(storageName, crypt(userInfo.Password))
+	user, err := storage.UserByNameAndPassword(storageName, crypt(userInfo.Password))
+	if err != nil {
+		userInfo.AddError("common", "Invalid storage name or password")
+		err = storage.AddRequest(storageName, userHost)
 		if err != nil {
-			userInfo.AddError("common", "Invalid storage name or password")
-			err = storage.AddRequest(storageName, userHost)
-			if err != nil {
-				log.Println("Error in add request: ", err)
-			}
-			return
+			log.Println("Error in add request: ", err)
 		}
+		return
+	}
 
-		err = storage.RemoveRequest(storageName, userHost)
-		if err != nil {
-			log.Println("Unable to remove request:", err)
-			// continue programm execution
-		}
+	err = storage.RemoveRequest(storageName, userHost)
+	if err != nil {
+		log.Println("Unable to remove request:", err)
+		// continue programm execution
+	}
 
-		err = storage.RemoveExpiredSessions(user.Id, time.Now().Unix())
-		if err != nil {
-			log.Println("Unable to remove expired sessions: ", err)
-		}
+	err = storage.RemoveExpiredSessions(user.Id, time.Now().Unix())
+	if err != nil {
+		log.Println("Unable to remove expired sessions: ", err)
+	}
 
-		sessionId, sessionExpires := newSessionParams()
-		err = storage.AddSession(user.Id, sessionId, sessionExpires)
-		if err != nil {
-			userInfo.AddError("common", "Internal server error, please try again later")
-			log.Println("Unable to update last login info", err)
-		} else {
-			renderTemplate = false
-			setUserCookie(w, storageName, sessionId, sessionExpires)
-			http.Redirect(w, r, "/"+storageName, http.StatusFound)
-			return
-		}
+	sessionId, sessionExpires := newSessionParams()
+	err = storage.AddSession(user.Id, sessionId, sessionExpires)
+	if err != nil {
+		userInfo.AddError("common", "Internal server error, please try again later")
+		log.Println("Unable to update last login info", err)
+	} else {
+		renderTemplate = false
+		setUserCookie(w, storageName, sessionId, sessionExpires)
+		http.Redirect(w, r, "/"+storageName, http.StatusFound)
+		return
 	}
 }
 
@@ -214,8 +218,8 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
+	if r.Method != http.MethodPost {
+		http.Error(w, "only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -274,8 +278,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func removeHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
+	if r.Method != http.MethodPost {
+		http.Error(w, "only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -301,7 +305,7 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func shareTextHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
 		return
 	}
