@@ -52,10 +52,6 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		userInfo.AddError("name", "Please specify storage name")
 	}
 
-	if userInfo.Password == "" {
-		userInfo.AddError("password", "Please enter password")
-	}
-
 	if len(userInfo.Errors) > 0 {
 		return
 	}
