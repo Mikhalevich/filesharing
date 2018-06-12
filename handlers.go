@@ -18,6 +18,17 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/common/", http.StatusMovedPermanently)
 }
 
+func indexHTMLHandler(w http.ResponseWriter, r *http.Request) {
+	sPath := contextStorage(r)
+	indexPath := path.Join(sPath, "index.html")
+	f, err := os.Open(indexPath)
+	if err != nil {
+		http.Error(w, "Can't open index.html", http.StatusInternalServerError)
+		return
+	}
+	http.ServeContent(w, r, indexPath, time.Now(), f)
+}
+
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	userInfo := NewTemplateRegister()
 	renderTemplate := true

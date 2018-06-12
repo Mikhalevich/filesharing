@@ -61,6 +61,20 @@ func makeRoutes() {
 			storePath(http.HandlerFunc(loginHandler)),
 		},
 		Route{
+			"/{storage}/index.html",
+			false,
+			"GET",
+			true,
+			storePath(http.HandlerFunc(indexHTMLHandler)),
+		},
+		Route{
+			"/{storage}/permanent/index.html",
+			false,
+			"GET",
+			true,
+			storePermanentPath(http.HandlerFunc(indexHTMLHandler)),
+		},
+		Route{
 			"/{storage}/permanent/",
 			false,
 			"GET",
