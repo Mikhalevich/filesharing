@@ -402,21 +402,10 @@ func (h *Handlers) recoverHandler(next http.Handler) http.Handler {
 	})
 }
 
-func (h *Handlers) noAuth(next http.Handler, needAuth bool) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (h *Handlers) checkAuth(next http.Handler, needAuth bool) http.Handler {
+func (h *Handlers) checkAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		storageName := storageVar(r)
 		var err error
-
-		if !needAuth {
-			next.ServeHTTP(w, r)
-			return
-		}
 
 		if storageName == "" {
 			log.Println(fmt.Sprintf("Storage name is empty for %s", r.URL))

@@ -27,11 +27,13 @@ func NewPublicStorages() *PublicStorages {
 }
 
 type Route struct {
-	Pattern  string
-	IsPrefix bool
-	Methods  string
-	NeedAuth bool
-	Handler  http.Handler
+	Pattern       string
+	IsPrefix      bool
+	Methods       string
+	NeedAuth      bool
+	StorePath     bool
+	PermanentPath bool
+	Handler       http.Handler
 }
 
 type Router struct {
@@ -54,12 +56,16 @@ func (r *Router) makeRoutes() {
 			false,
 			"GET",
 			false,
+			false,
+			false,
 			http.HandlerFunc(r.h.RootHandler),
 		},
 		Route{
 			"/res/",
 			true,
 			"GET",
+			false,
+			false,
 			false,
 			http.StripPrefix("/res/", http.FileServer(http.Dir("res"))),
 		},
@@ -68,6 +74,8 @@ func (r *Router) makeRoutes() {
 			false,
 			"GET,POST",
 			false,
+			false,
+			false,
 			http.HandlerFunc(r.h.RegisterHandler),
 		},
 		Route{
@@ -75,41 +83,53 @@ func (r *Router) makeRoutes() {
 			false,
 			"GET,POST",
 			false,
-			r.h.storePath(http.HandlerFunc(r.h.LoginHandler)),
+			true,
+			false,
+			http.HandlerFunc(r.h.LoginHandler),
 		},
 		Route{
 			"/{storage}/index.html",
 			false,
 			"GET",
 			true,
-			r.h.storePath(http.HandlerFunc(r.h.IndexHTMLHandler)),
+			true,
+			false,
+			http.HandlerFunc(r.h.IndexHTMLHandler),
 		},
 		Route{
 			"/{storage}/permanent/index.html",
 			false,
 			"GET",
 			true,
-			r.h.storePermanentPath(http.HandlerFunc(r.h.IndexHTMLHandler)),
+			true,
+			true,
+			http.HandlerFunc(r.h.IndexHTMLHandler),
 		},
 		Route{
 			"/{storage}/permanent/",
 			false,
 			"GET",
 			true,
-			r.h.storePermanentPath(http.HandlerFunc(r.h.ViewHandler)),
+			true,
+			true,
+			http.HandlerFunc(r.h.ViewHandler),
 		},
 		Route{
 			"/{storage}/",
 			false,
 			"GET",
 			true,
-			r.h.storePath(http.HandlerFunc(r.h.ViewHandler)),
+			true,
+			false,
+			http.HandlerFunc(r.h.ViewHandler),
 		},
 		Route{
 			"/{storage}/",
 			true,
 			"GET",
 			true,
+			false,
+			false,
 			http.FileServer(http.Dir(params.RootStorage)),
 		},
 		Route{
@@ -117,42 +137,54 @@ func (r *Router) makeRoutes() {
 			false,
 			"POST",
 			true,
-			r.h.storePath(http.HandlerFunc(r.h.UploadHandler)),
+			true,
+			false,
+			http.HandlerFunc(r.h.UploadHandler),
 		},
 		Route{
 			"/{storage}/permanent/upload/",
 			false,
 			"POST",
 			true,
-			r.h.storePermanentPath(http.HandlerFunc(r.h.UploadHandler)),
+			true,
+			true,
+			http.HandlerFunc(r.h.UploadHandler),
 		},
 		Route{
 			"/{storage}/remove/",
 			false,
 			"POST",
 			true,
-			r.h.storePath(http.HandlerFunc(r.h.RemoveHandler)),
+			true,
+			false,
+			http.HandlerFunc(r.h.RemoveHandler),
 		},
 		Route{
 			"/{storage}/permanent/remove/",
 			false,
 			"POST",
 			true,
-			r.h.storePermanentPath(http.HandlerFunc(r.h.RemoveHandler)),
+			true,
+			true,
+			http.HandlerFunc(r.h.RemoveHandler),
 		},
 		Route{
 			"/{storage}/shareText/",
 			false,
 			"POST",
 			true,
-			r.h.storePath(http.HandlerFunc(r.h.ShareTextHandler)),
+			true,
+			false,
+			http.HandlerFunc(r.h.ShareTextHandler),
 		},
 		Route{
 			"/{storage}/permanent/shareText/",
 			false,
 			"POST",
 			true,
-			r.h.storePermanentPath(http.HandlerFunc(r.h.ShareTextHandler)),
+			true,
+			true,
+			http.HandlerFunc(r.h.ShareTextHandler),
 		},
 	}
 }
@@ -168,12 +200,25 @@ func (r *Router) handler() http.Handler {
 		} else {
 			muxRoute.Path(route.Pattern)
 		}
-		authFunc := r.h.noAuth
-		if r.params.AllowPrivate {
-			authFunc = r.h.checkAuth
-		}
+
 		muxRoute.Methods(strings.Split(route.Methods, ",")...)
-		muxRoute.Handler(r.h.recoverHandler(authFunc(route.Handler, route.NeedAuth)))
+
+		handler := route.Handler
+		if r.params.AllowPrivate && route.NeedAuth {
+			handler = r.h.checkAuth(handler)
+		}
+
+		if route.StorePath {
+			if route.PermanentPath {
+				handler = r.h.storePermanentPath(handler)
+			} else {
+				handler = r.h.storePath(handler)
+			}
+		}
+
+		handler = r.h.recoverHandler(handler)
+
+		muxRoute.Handler(handler)
 	}
 
 	return router
