@@ -106,11 +106,12 @@ func main() {
 	s := db.NewStorage()
 	s.Close()
 
-	router := NewRouter(params.AllowPrivate)
+	//router := NewRouter(params.AllowPrivate)
+	router := NewRouter(*params)
 
 	log.Printf("Running at %s\n", params.Host)
 
-	err = http.ListenAndServe(params.Host, router)
+	err = http.ListenAndServe(params.Host, router.handler())
 	if err != nil {
 		log.Println(err)
 	}

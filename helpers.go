@@ -64,7 +64,10 @@ func storageVar(r *http.Request) string {
 }
 
 func crypt(password string) [sha1.Size]byte {
-	return sha1.Sum([]byte(password))
+	if password != "" {
+		return sha1.Sum([]byte(password))
+	}
+	return [sha1.Size]byte{}
 }
 
 func newSessionParams() (string, int64) {

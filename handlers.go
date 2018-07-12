@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -12,14 +13,30 @@ import (
 
 	"github.com/Mikhalevich/filesharing/db"
 	"github.com/Mikhalevich/filesharing/fileInfo"
+	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
 )
 
-func rootHandler(w http.ResponseWriter, r *http.Request) {
+const (
+	contextStoragePath = "storagePath"
+)
+
+type Handlers struct {
+	sc StorageChecker
+}
+
+func NewHandlers(checker StorageChecker) *Handlers {
+	return &Handlers{
+		sc: checker,
+	}
+}
+
+func (h *Handlers) RootHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/common/", http.StatusMovedPermanently)
 }
 
-func indexHTMLHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := contextStorage(r)
+func (h *Handlers) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
+	sPath := h.contextStorage(r)
 	indexPath := path.Join(sPath, "index.html")
 	f, err := os.Open(indexPath)
 	if err != nil {
@@ -29,7 +46,7 @@ func indexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, indexPath, time.Now(), f)
 }
 
-func registerHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	userInfo := NewTemplateRegister()
 	renderTemplate := true
 
@@ -56,7 +73,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok := staticStorages[userInfo.StorageName]; ok {
+	if !h.sc.IsPublic(userInfo.StorageName) {
 		userInfo.AddError("common", "Storage with this name already exists")
 		return
 	}
@@ -96,7 +113,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/"+userInfo.StorageName, http.StatusFound)
 }
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	userInfo := NewTemplatePassword()
 	renderTemplate := true
 	defer func() {
@@ -205,8 +222,8 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func viewHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := contextStorage(r)
+func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
+	sPath := h.contextStorage(r)
 	_, err := os.Stat(sPath)
 	if respondError(err, w, http.StatusInternalServerError) {
 		return
@@ -224,7 +241,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func uploadHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "only POST method allowed", http.StatusMethodNotAllowed)
 		return
@@ -235,7 +252,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sPath := contextStorage(r)
+	sPath := h.contextStorage(r)
 	for {
 		part, err := mr.NextPart()
 		if err == io.EOF {
@@ -284,7 +301,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func removeHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "only POST method allowed", http.StatusMethodNotAllowed)
 		return
@@ -296,7 +313,7 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sPath := contextStorage(r)
+	sPath := h.contextStorage(r)
 	fiList := fileInfo.ListDir(sPath)
 	if !fiList.Exist(fileName) {
 		respondError(errors.New(fileName+" doesn't exist"), w, http.StatusBadRequest)
@@ -311,7 +328,7 @@ func removeHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func shareTextHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
 		return
@@ -325,7 +342,7 @@ func shareTextHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sPath := contextStorage(r)
+	sPath := h.contextStorage(r)
 	title = fileInfo.UniqueName(title, sPath)
 
 	file, err := os.Create(path.Join(sPath, title))
@@ -340,4 +357,130 @@ func shareTextHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handlers) contextStorage(r *http.Request) string {
+	return context.Get(r, contextStoragePath).(string)
+}
+
+func (h *Handlers) storePath(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		storage := mux.Vars(r)["storage"]
+		if storage == "" {
+			log.Printf("Invalid storage request, url = %s", r.URL)
+		} else {
+			context.Set(r, contextStoragePath, storagePath(storage))
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (h *Handlers) storePermanentPath(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		storage := mux.Vars(r)["storage"]
+		if storage == "" {
+			log.Printf("Invalid storage request, url = %s", r.URL)
+		} else {
+			context.Set(r, contextStoragePath, permanentPath(storage))
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (h *Handlers) recoverHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if e, ok := recover().(error); ok {
+				http.Error(w, e.Error(), http.StatusInternalServerError)
+				return
+			}
+		}()
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (h *Handlers) noAuth(next http.Handler, needAuth bool) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (h *Handlers) checkAuth(next http.Handler, needAuth bool) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		storageName := storageVar(r)
+		var err error
+
+		if !needAuth {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if storageName == "" {
+			log.Println(fmt.Sprintf("Storage name is empty for %s", r.URL))
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if !h.sc.IsPublic(storageName) {
+			err = checkStorage(storageName, false)
+			if err != nil {
+				respondError(err, w, http.StatusInternalServerError)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		storage := db.NewStorage()
+		defer storage.Close()
+
+		user, err := storage.UserByName(storageName)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		err = checkStorage(storageName, true)
+		if err != nil {
+			respondError(err, w, http.StatusInternalServerError)
+			return
+		}
+
+		if user.Password.IsEmpty() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		authorized := false
+		defer func() {
+			if authorized {
+				next.ServeHTTP(w, r)
+			} else {
+				http.Redirect(w, r, "/login/"+storageName, http.StatusFound)
+			}
+		}()
+
+		cookies := r.Cookies()
+		for _, cook := range cookies {
+			if cook.Name == storageName {
+				session, err := user.SessionById(cook.Value)
+				if err != nil {
+					removeCookie(w, storageName)
+					return
+				}
+
+				if isExpired(session.Expires) {
+					removeCookie(w, storageName)
+					return
+				}
+
+				authorized = true
+				return
+			}
+		}
+	})
 }
