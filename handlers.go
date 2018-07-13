@@ -14,7 +14,6 @@ import (
 	"github.com/Mikhalevich/filesharing/db"
 	"github.com/Mikhalevich/filesharing/fileInfo"
 	"github.com/gorilla/context"
-	"github.com/gorilla/mux"
 )
 
 const (
@@ -100,7 +99,7 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = createSkel(userInfo.StorageName, true)
+	err = h.createSkel(userInfo.StorageName, true)
 	if err != nil {
 		if !os.IsExist(err) {
 			userInfo.AddError("common", "Unable to create storage directory")
@@ -109,7 +108,7 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderTemplate = false
-	setUserCookie(w, userInfo.StorageName, sessionId, sessionExpires)
+	h.setUserCookie(w, userInfo.StorageName, sessionId, sessionExpires)
 	http.Redirect(w, r, "/"+userInfo.StorageName, http.StatusFound)
 }
 
@@ -124,7 +123,7 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	storageName := storageVar(r)
+	storageName := h.sc.Name(r)
 
 	cookies := r.Cookies()
 	for _, cook := range cookies {
@@ -135,12 +134,12 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 			user, err := storage.UserByName(storageName)
 			if err != nil {
-				removeCookie(w, storageName)
+				h.removeCookie(w, storageName)
 				break
 			}
 			session, err := user.SessionById(cook.Value)
 			if err != nil {
-				removeCookie(w, storageName)
+				h.removeCookie(w, storageName)
 				break
 			}
 
@@ -216,7 +215,7 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("Unable to update last login info", err)
 	} else {
 		renderTemplate = false
-		setUserCookie(w, storageName, sessionId, sessionExpires)
+		h.setUserCookie(w, storageName, sessionId, sessionExpires)
 		http.Redirect(w, r, "/"+storageName, http.StatusFound)
 		return
 	}
@@ -359,37 +358,7 @@ func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handlers) contextStorage(r *http.Request) string {
-	return context.Get(r, contextStoragePath).(string)
-}
-
-func (h *Handlers) storePath(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		storage := mux.Vars(r)["storage"]
-		if storage == "" {
-			log.Printf("Invalid storage request, url = %s", r.URL)
-		} else {
-			context.Set(r, contextStoragePath, storagePath(storage))
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (h *Handlers) storePermanentPath(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		storage := mux.Vars(r)["storage"]
-		if storage == "" {
-			log.Printf("Invalid storage request, url = %s", r.URL)
-		} else {
-			context.Set(r, contextStoragePath, permanentPath(storage))
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (h *Handlers) recoverHandler(next http.Handler) http.Handler {
+func (h *Handlers) RecoverHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if e, ok := recover().(error); ok {
@@ -402,9 +371,9 @@ func (h *Handlers) recoverHandler(next http.Handler) http.Handler {
 	})
 }
 
-func (h *Handlers) checkAuth(next http.Handler) http.Handler {
+func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		storageName := storageVar(r)
+		storageName := h.sc.Name(r)
 		var err error
 
 		if storageName == "" {
@@ -414,7 +383,7 @@ func (h *Handlers) checkAuth(next http.Handler) http.Handler {
 		}
 
 		if !h.sc.IsPublic(storageName) {
-			err = checkStorage(storageName, false)
+			err = h.checkStorage(storageName, false)
 			if err != nil {
 				respondError(err, w, http.StatusInternalServerError)
 				return
@@ -433,7 +402,7 @@ func (h *Handlers) checkAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		err = checkStorage(storageName, true)
+		err = h.checkStorage(storageName, true)
 		if err != nil {
 			respondError(err, w, http.StatusInternalServerError)
 			return
@@ -458,12 +427,12 @@ func (h *Handlers) checkAuth(next http.Handler) http.Handler {
 			if cook.Name == storageName {
 				session, err := user.SessionById(cook.Value)
 				if err != nil {
-					removeCookie(w, storageName)
+					h.removeCookie(w, storageName)
 					return
 				}
 
 				if isExpired(session.Expires) {
-					removeCookie(w, storageName)
+					h.removeCookie(w, storageName)
 					return
 				}
 
@@ -472,4 +441,79 @@ func (h *Handlers) checkAuth(next http.Handler) http.Handler {
 			}
 		}
 	})
+}
+
+func (h *Handlers) StorePath(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		storage := h.sc.Name(r)
+		if storage == "" {
+			log.Printf("Invalid storage request, url = %s", r.URL)
+		} else {
+			context.Set(r, contextStoragePath, h.sc.Path(storage))
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (h *Handlers) StorePermanentPath(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		storage := h.sc.Name(r)
+		if storage == "" {
+			log.Printf("Invalid storage request, url = %s", r.URL)
+		} else {
+			context.Set(r, contextStoragePath, h.sc.PermanentPath(storage))
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (h *Handlers) contextStorage(r *http.Request) string {
+	return context.Get(r, contextStoragePath).(string)
+}
+
+func (h *Handlers) createSkel(storageName string, permanent bool) error {
+	createFolder := func(path string) error {
+		err := os.Mkdir(path, os.ModePerm)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	err := createFolder(h.sc.Path(storageName))
+	if err != nil {
+		return err
+	}
+
+	if permanent {
+		err := createFolder(h.sc.PermanentPath(storageName))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (h *Handlers) checkStorage(storageName string, permanent bool) error {
+	_, err := os.Stat(h.sc.Path(storageName))
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = h.createSkel(storageName, permanent)
+		}
+	}
+
+	return err
+}
+
+func (h *Handlers) setUserCookie(w http.ResponseWriter, sessionName, sessionId string, expires int64) {
+	cookie := http.Cookie{Name: sessionName, Value: sessionId, Path: "/", Expires: time.Unix(expires, 0), HttpOnly: true}
+	http.SetCookie(w, &cookie)
+}
+
+func (h *Handlers) removeCookie(w http.ResponseWriter, sessionName string) {
+	http.SetCookie(w, &http.Cookie{Name: sessionName, Value: "", Path: "/", Expires: time.Unix(0, 0), HttpOnly: true})
 }

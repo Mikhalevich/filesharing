@@ -2,17 +2,27 @@ package main
 
 import (
 	"net/http"
+	"path"
 	"strings"
 
 	"github.com/gorilla/mux"
 )
 
 type StorageChecker interface {
+	Name(r *http.Request) string
 	IsPublic(name string) bool
+	Path(name string) string
+	PermanentPath(name string) string
 }
 
 type PublicStorages struct {
-	s map[string]bool
+	rootPath      string
+	permanentPath string
+	s             map[string]bool
+}
+
+func (p *PublicStorages) Name(r *http.Request) string {
+	return mux.Vars(r)["storage"]
 }
 
 func (p *PublicStorages) IsPublic(name string) bool {
@@ -20,9 +30,19 @@ func (p *PublicStorages) IsPublic(name string) bool {
 	return ok
 }
 
-func NewPublicStorages() *PublicStorages {
+func (p *PublicStorages) Path(name string) string {
+	return path.Join(p.rootPath, name)
+}
+
+func (p *PublicStorages) PermanentPath(name string) string {
+	return path.Join(p.Path(name), p.permanentPath)
+}
+
+func NewPublicStorages(root string, permanent string) *PublicStorages {
 	return &PublicStorages{
-		s: map[string]bool{"common": true, "res": true},
+		rootPath:      root,
+		permanentPath: permanent,
+		s:             map[string]bool{"common": true, "res": true},
 	}
 }
 
@@ -45,7 +65,7 @@ type Router struct {
 func NewRouter(p Params) *Router {
 	return &Router{
 		params: p,
-		h:      NewHandlers(NewPublicStorages()),
+		h:      NewHandlers(NewPublicStorages(p.RootStorage, p.PermanentDir)),
 	}
 }
 
@@ -205,18 +225,18 @@ func (r *Router) handler() http.Handler {
 
 		handler := route.Handler
 		if r.params.AllowPrivate && route.NeedAuth {
-			handler = r.h.checkAuth(handler)
+			handler = r.h.CheckAuth(handler)
 		}
 
 		if route.StorePath {
 			if route.PermanentPath {
-				handler = r.h.storePermanentPath(handler)
+				handler = r.h.StorePermanentPath(handler)
 			} else {
-				handler = r.h.storePath(handler)
+				handler = r.h.StorePath(handler)
 			}
 		}
 
-		handler = r.h.recoverHandler(handler)
+		handler = r.h.RecoverHandler(handler)
 
 		muxRoute.Handler(handler)
 	}

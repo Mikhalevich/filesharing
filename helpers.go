@@ -6,48 +6,8 @@ import (
 	"encoding/base64"
 	"log"
 	"net/http"
-	"os"
-	"path"
 	"time"
-
-	"github.com/gorilla/mux"
 )
-
-func storagePath(storageName string) string {
-	return path.Join(params.RootStorage, storageName)
-}
-
-func permanentPath(storageName string) string {
-	return path.Join(storagePath(storageName), params.PermanentDir)
-}
-
-func createSkel(storageName string, permanent bool) error {
-	sPath := storagePath(storageName)
-	err := os.Mkdir(sPath, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	if permanent {
-		err = os.Mkdir(path.Join(sPath, params.PermanentDir), os.ModePerm)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func checkStorage(storageName string, permanent bool) error {
-	_, err := os.Stat(storagePath(storageName))
-	if err != nil {
-		if os.IsNotExist(err) {
-			err = createSkel(storageName, permanent)
-		}
-	}
-
-	return err
-}
 
 func respondError(err error, w http.ResponseWriter, httpStatusCode int) bool {
 	if err != nil {
@@ -57,10 +17,6 @@ func respondError(err error, w http.ResponseWriter, httpStatusCode int) bool {
 	}
 
 	return false
-}
-
-func storageVar(r *http.Request) string {
-	return mux.Vars(r)["storage"]
 }
 
 func crypt(password string) [sha1.Size]byte {
@@ -82,13 +38,4 @@ func newSessionParams() (string, int64) {
 
 func isExpired(sessionTime int64) bool {
 	return sessionTime < time.Now().Unix()
-}
-
-func setUserCookie(w http.ResponseWriter, sessionName, sessionId string, expires int64) {
-	cookie := http.Cookie{Name: sessionName, Value: sessionId, Path: "/", Expires: time.Unix(expires, 0), HttpOnly: true}
-	http.SetCookie(w, &cookie)
-}
-
-func removeCookie(w http.ResponseWriter, sessionName string) {
-	http.SetCookie(w, &http.Cookie{Name: sessionName, Value: "", Path: "/", Expires: time.Unix(0, 0), HttpOnly: true})
 }
