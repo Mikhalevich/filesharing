@@ -13,6 +13,7 @@ import (
 
 	"github.com/Mikhalevich/filesharing/db"
 	"github.com/Mikhalevich/filesharing/fileInfo"
+	"github.com/Mikhalevich/filesharing/templates"
 	"github.com/gorilla/context"
 )
 
@@ -46,12 +47,12 @@ func (h *Handlers) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	userInfo := NewTemplateRegister()
+	userInfo := templates.NewTemplateRegister()
 	renderTemplate := true
 
 	defer func() {
 		if renderTemplate {
-			if err := templates.ExecuteTemplate(w, "register.html", userInfo); err != nil {
+			if err := userInfo.Execute(w); err != nil {
 				log.Println(err)
 			}
 		}
@@ -113,11 +114,11 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	userInfo := NewTemplatePassword()
+	userInfo := templates.NewTemplatePassword()
 	renderTemplate := true
 	defer func() {
 		if renderTemplate {
-			if err := templates.ExecuteTemplate(w, "login.html", userInfo); err != nil {
+			if err := userInfo.Execute(w); err != nil {
 				log.Println(err)
 			}
 		}
@@ -228,13 +229,9 @@ func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fiList := fileInfo.ListDir(sPath)
-	page := struct {
-		Title        string
-		FileInfoList []fileInfo.FileInfo
-	}{Title, fiList}
+	viewTemplate := templates.NewTemplateView(Title, fileInfo.ListDir(sPath))
 
-	err = templates.ExecuteTemplate(w, "view.html", page)
+	err = viewTemplate.Execute(w)
 	if err != nil {
 		log.Println(err)
 	}
