@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path"
@@ -67,13 +68,10 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	if userInfo.StorageName == "" {
 		userInfo.AddError("name", "Please specify storage name")
-	}
-
-	if len(userInfo.Errors) > 0 {
 		return
 	}
 
-	if !h.sc.IsPublic(userInfo.StorageName) {
+	if h.sc.IsPublic(userInfo.StorageName) {
 		userInfo.AddError("common", "Storage with this name already exists")
 		return
 	}
@@ -100,17 +98,106 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.createSkel(userInfo.StorageName, true)
+	err = h.checkStorage(userInfo.StorageName, true)
 	if err != nil {
-		if !os.IsExist(err) {
-			userInfo.AddError("common", "Unable to create storage directory")
-			return
-		}
+		userInfo.AddError("common", "Unable to create storage directory")
+		return
 	}
 
 	renderTemplate = false
 	h.setUserCookie(w, userInfo.StorageName, sessionId, sessionExpires)
 	http.Redirect(w, r, "/"+userInfo.StorageName, http.StatusFound)
+}
+
+func (h *Handlers) isAlreadyRegistered(w http.ResponseWriter, cookies []*http.Cookie, name string) bool {
+	for _, cook := range cookies {
+		if cook.Name == name {
+			storage := db.NewStorage()
+			defer storage.Close()
+
+			clearCook := true
+			defer func() {
+				if clearCook {
+					h.removeCookie(w, name)
+				}
+			}()
+
+			user, err := storage.UserByName(name)
+			if err != nil {
+				break
+			}
+
+			session, err := user.SessionById(cook.Value)
+			if err != nil {
+				break
+			}
+
+			if !isExpired(session.Expires) {
+				clearCook = false
+				return true
+			}
+
+			break
+		}
+	}
+
+	return false
+}
+
+func (h *Handlers) isRequestAllowed(storageName string, host string) (bool, int64) {
+	storage := db.NewStorage()
+	defer storage.Close()
+
+	loginRequest, err := storage.GetRequest(storageName, host)
+	if err != nil {
+		return true, 0
+	}
+
+	if loginRequest.Count >= LoginRequestMaxCount {
+		timeDelta := time.Now().Unix() - loginRequest.LastRequest
+		allowed := timeDelta >= LoginRequestWaitingPeriod
+
+		if !allowed {
+			return false, LoginRequestWaitingPeriod - timeDelta
+		}
+
+		storage.ResetRequestCounter(loginRequest)
+	}
+
+	return true, 0
+}
+
+func (h *Handlers) generateSession(storageName string, pwd string, userHost string) (string, int64, error) {
+	storage := db.NewStorage()
+	defer storage.Close()
+
+	user, err := storage.UserByNameAndPassword(storageName, crypt(pwd))
+	if err != nil {
+		err = storage.AddRequest(storageName, userHost)
+		if err != nil {
+			log.Println("Error in add request: ", err)
+		}
+		return "", 0, errors.New("Invalid storage name or password")
+	}
+
+	err = storage.RemoveRequest(storageName, userHost)
+	if err != nil {
+		log.Println("Unable to remove request:", err)
+	}
+
+	err = storage.RemoveExpiredSessions(user.Id, time.Now().Unix())
+	if err != nil {
+		log.Println("Unable to remove expired sessions: ", err)
+	}
+
+	sessionId, sessionExpires := newSessionParams()
+	err = storage.AddSession(user.Id, sessionId, sessionExpires)
+	if err != nil {
+		log.Println("Unable to update last login info", err)
+		return "", 0, errors.New("Internal server error, please try again later")
+	}
+
+	return sessionId, sessionExpires, nil
 }
 
 func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -126,29 +213,9 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	storageName := h.sc.Name(r)
 
-	cookies := r.Cookies()
-	for _, cook := range cookies {
-		if cook.Name == storageName {
-
-			storage := db.NewStorage()
-			defer storage.Close()
-
-			user, err := storage.UserByName(storageName)
-			if err != nil {
-				h.removeCookie(w, storageName)
-				break
-			}
-			session, err := user.SessionById(cook.Value)
-			if err != nil {
-				h.removeCookie(w, storageName)
-				break
-			}
-
-			if !isExpired(session.Expires) {
-				userInfo.AddError("common", "Already registered")
-				return
-			}
-		}
+	if h.isAlreadyRegistered(w, r.Cookies(), storageName) {
+		userInfo.AddError("common", "Already registered")
+		return
 	}
 
 	if r.Method != http.MethodPost {
@@ -169,57 +236,21 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storage := db.NewStorage()
-	defer storage.Close()
-
 	userHost := r.RemoteAddr[:strings.Index(r.RemoteAddr, ":")]
-	loginRequest, err := storage.GetRequest(storageName, userHost)
-	if err == nil {
-		if loginRequest.Count >= LoginRequestMaxCount {
-			timeDelta := time.Now().Unix() - loginRequest.LastRequest
-			allowed := timeDelta >= LoginRequestWaitingPeriod
-
-			if allowed {
-				storage.ResetRequestCounter(loginRequest)
-			} else {
-				userInfo.AddError("common", "Request is not allowed, please wait %d seconds", LoginRequestWaitingPeriod-timeDelta)
-				return
-			}
-		}
-	}
-
-	user, err := storage.UserByNameAndPassword(storageName, crypt(userInfo.Password))
-	if err != nil {
-		userInfo.AddError("common", "Invalid storage name or password")
-		err = storage.AddRequest(storageName, userHost)
-		if err != nil {
-			log.Println("Error in add request: ", err)
-		}
+	if allowed, waitPeriod := h.isRequestAllowed(storageName, userHost); !allowed {
+		userInfo.AddError("common", "Request is not allowed, please wait %d seconds", waitPeriod)
 		return
 	}
 
-	err = storage.RemoveRequest(storageName, userHost)
+	sessionId, sessionExpires, err := h.generateSession(storageName, userInfo.Password, userHost)
 	if err != nil {
-		log.Println("Unable to remove request:", err)
-		// continue programm execution
-	}
-
-	err = storage.RemoveExpiredSessions(user.Id, time.Now().Unix())
-	if err != nil {
-		log.Println("Unable to remove expired sessions: ", err)
-	}
-
-	sessionId, sessionExpires := newSessionParams()
-	err = storage.AddSession(user.Id, sessionId, sessionExpires)
-	if err != nil {
-		userInfo.AddError("common", "Internal server error, please try again later")
-		log.Println("Unable to update last login info", err)
-	} else {
-		renderTemplate = false
-		h.setUserCookie(w, storageName, sessionId, sessionExpires)
-		http.Redirect(w, r, "/"+storageName, http.StatusFound)
+		userInfo.AddError("common", err.Error())
 		return
 	}
+
+	renderTemplate = false
+	h.setUserCookie(w, storageName, sessionId, sessionExpires)
+	http.Redirect(w, r, fmt.Sprintf("/%s", storageName), http.StatusFound)
 }
 
 func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
@@ -248,6 +279,7 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	files := []string{}
 	sPath := h.contextStorage(r)
 	for {
 		part, err := mr.NextPart()
@@ -264,37 +296,37 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		fileName = fileInfo.UniqueName(fileName, sPath)
-
-		err = func() error {
-			f, err := os.Create(path.Join(params.TempDir, fileName))
-			if err != nil {
-				return err
-			}
-
-			defer f.Close()
-
-			if _, err = io.Copy(f, part); err != nil {
-				return err
-			}
-
-			return nil
-		}()
-
+		fn, err := h.storeTempFile(fileName, part)
 		if respondError(err, w, http.StatusInternalServerError) {
 			return
 		}
+		files = append(files, fn)
 	}
 
-	fil := fileInfo.ListDir(params.TempDir)
-	for _, fi := range fil {
-		err = os.Rename(path.Join(params.TempDir, fi.Name()), path.Join(sPath, fi.Name()))
+	for _, fi := range files {
+		fn := fileInfo.UniqueName(fi, sPath)
+		err = os.Rename(path.Join(params.TempDir, fi), path.Join(sPath, fn))
 		if err != nil {
 			log.Println(err.Error())
 		}
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handlers) storeTempFile(fileName string, part *multipart.Part) (string, error) {
+	fileName = fileInfo.UniqueName(fileName, params.TempDir)
+	f, err := os.Create(path.Join(params.TempDir, fileName))
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	if _, err = io.Copy(f, part); err != nil {
+		return "", err
+	}
+
+	return fileName, nil
 }
 
 func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
@@ -304,7 +336,7 @@ func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fileName := r.FormValue("fileName")
-	if len(fileName) <= 0 {
+	if fileName == "" {
 		respondError(errors.New("file name was not set"), w, http.StatusBadRequest)
 		return
 	}
@@ -333,7 +365,7 @@ func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 	title := r.FormValue("title")
 	body := r.FormValue("body")
 
-	if len(title) <= 0 || len(body) <= 0 {
+	if title == "" || body == "" {
 		respondError(errors.New("title or body was not set"), w, http.StatusBadRequest)
 		return
 	}
@@ -379,13 +411,12 @@ func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		if !h.sc.IsPublic(storageName) {
+		if h.sc.IsPublic(storageName) {
 			err = h.checkStorage(storageName, false)
 			if err != nil {
 				respondError(err, w, http.StatusInternalServerError)
 				return
 			}
-
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -415,29 +446,33 @@ func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 			if authorized {
 				next.ServeHTTP(w, r)
 			} else {
-				http.Redirect(w, r, "/login/"+storageName, http.StatusFound)
+				http.Redirect(w, r, fmt.Sprintf("/login/%s", storageName), http.StatusFound)
 			}
 		}()
 
-		cookies := r.Cookies()
-		for _, cook := range cookies {
-			if cook.Name == storageName {
-				session, err := user.SessionById(cook.Value)
-				if err != nil {
-					h.removeCookie(w, storageName)
-					return
-				}
-
-				if isExpired(session.Expires) {
-					h.removeCookie(w, storageName)
-					return
-				}
-
-				authorized = true
-				return
-			}
-		}
+		authorized = h.checkSessionCookie(r, w, storageName, user)
 	})
+}
+
+func (h *Handlers) checkSessionCookie(r *http.Request, w http.ResponseWriter, storageName string, user db.User) bool {
+	cookies := r.Cookies()
+	for _, cook := range cookies {
+		if cook.Name == storageName {
+			session, err := user.SessionById(cook.Value)
+			if err != nil {
+				h.removeCookie(w, storageName)
+				return false
+			}
+
+			if isExpired(session.Expires) {
+				h.removeCookie(w, storageName)
+				return false
+			}
+
+			return true
+		}
+	}
+	return false
 }
 
 func (h *Handlers) StorePath(next http.Handler) http.Handler {
