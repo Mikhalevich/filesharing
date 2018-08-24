@@ -127,39 +127,6 @@ func (h *Handlers) isAlreadyRegistered(w http.ResponseWriter, cookies []*http.Co
 	return false
 }
 
-func (h *Handlers) generateSession(storageName string, pwd string, userHost string) (*db.Session, error) {
-	storage := db.NewStorage()
-	defer storage.Close()
-
-	user, err := storage.UserByNameAndPassword(storageName, crypt(pwd))
-	if err != nil {
-		err = storage.AddRequest(storageName, userHost)
-		if err != nil {
-			log.Println("Error in add request: ", err)
-		}
-		return nil, errors.New("Invalid storage name or password")
-	}
-
-	err = storage.RemoveRequest(storageName, userHost)
-	if err != nil {
-		log.Println("Unable to remove request:", err)
-	}
-
-	err = storage.RemoveExpiredSessions(user.Id, time.Now().Unix())
-	if err != nil {
-		log.Println("Unable to remove expired sessions: ", err)
-	}
-
-	s := db.NewSession(SessionExpirePeriod)
-	err = storage.AddSession(user.Id, s)
-	if err != nil {
-		log.Println("Unable to update last login info", err)
-		return nil, errors.New("Internal server error, please try again later")
-	}
-
-	return s, nil
-}
-
 func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	userInfo := templates.NewTemplatePassword()
 	renderTemplate := true
@@ -209,7 +176,7 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s, err := h.generateSession(storageName, userInfo.Password, userHost)
+	s, err := generateSession(storageName, userInfo.Password, userHost)
 	if err != nil {
 		userInfo.AddError("common", err.Error())
 		return
@@ -388,10 +355,7 @@ func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		storage := db.NewStorage()
-		defer storage.Close()
-
-		user, err := storage.UserByName(storageName)
+		user, err := userByName(storageName)
 		if err != nil {
 			http.NotFound(w, r)
 			return
