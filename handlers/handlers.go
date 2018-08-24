@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"errors"
@@ -19,16 +19,29 @@ import (
 )
 
 const (
-	contextStoragePath = "storagePath"
+	SessionExpirePeriod       = 1 * 60 * 60 * 24 * 30 // sec
+	LoginRequestMaxCount      = 3
+	LoginRequestWaitingPeriod = 60 // sec
+	Title                     = "Duplo"
+	ContextStoragePath        = "storagePath"
 )
 
-type Handlers struct {
-	sc StorageChecker
+type StorageChecker interface {
+	Name(r *http.Request) string
+	IsPublic(name string) bool
+	Path(name string) string
+	PermanentPath(name string) string
 }
 
-func NewHandlers(checker StorageChecker) *Handlers {
+type Handlers struct {
+	sc                 StorageChecker
+	temporaryDirectory string
+}
+
+func NewHandlers(checker StorageChecker, tempDir string) *Handlers {
 	return &Handlers{
-		sc: checker,
+		sc:                 checker,
+		temporaryDirectory: tempDir,
 	}
 }
 
@@ -305,7 +318,7 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	for _, fi := range files {
 		fn := fileInfo.UniqueName(fi, sPath)
-		err = os.Rename(path.Join(params.TempDir, fi), path.Join(sPath, fn))
+		err = os.Rename(path.Join(h.temporaryDirectory, fi), path.Join(sPath, fn))
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -315,8 +328,8 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) storeTempFile(fileName string, part *multipart.Part) (string, error) {
-	fileName = fileInfo.UniqueName(fileName, params.TempDir)
-	f, err := os.Create(path.Join(params.TempDir, fileName))
+	fileName = fileInfo.UniqueName(fileName, h.temporaryDirectory)
+	f, err := os.Create(path.Join(h.temporaryDirectory, fileName))
 	if err != nil {
 		return "", err
 	}
@@ -481,7 +494,7 @@ func (h *Handlers) StorePath(next http.Handler) http.Handler {
 		if storage == "" {
 			log.Printf("Invalid storage request, url = %s", r.URL)
 		} else {
-			context.Set(r, contextStoragePath, h.sc.Path(storage))
+			context.Set(r, ContextStoragePath, h.sc.Path(storage))
 		}
 
 		next.ServeHTTP(w, r)
@@ -494,7 +507,7 @@ func (h *Handlers) StorePermanentPath(next http.Handler) http.Handler {
 		if storage == "" {
 			log.Printf("Invalid storage request, url = %s", r.URL)
 		} else {
-			context.Set(r, contextStoragePath, h.sc.PermanentPath(storage))
+			context.Set(r, ContextStoragePath, h.sc.PermanentPath(storage))
 		}
 
 		next.ServeHTTP(w, r)
@@ -502,7 +515,7 @@ func (h *Handlers) StorePermanentPath(next http.Handler) http.Handler {
 }
 
 func (h *Handlers) contextStorage(r *http.Request) string {
-	return context.Get(r, contextStoragePath).(string)
+	return context.Get(r, ContextStoragePath).(string)
 }
 
 func (h *Handlers) createSkel(storageName string, permanent bool) error {

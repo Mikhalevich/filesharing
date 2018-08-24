@@ -13,13 +13,6 @@ import (
 	"github.com/Mikhalevich/filesharing/fileInfo"
 )
 
-const (
-	SessionExpirePeriod       = 1 * 60 * 60 * 24 * 30 // sec
-	LoginRequestMaxCount      = 3
-	LoginRequestWaitingPeriod = 60 // sec
-	Title                     = "Duplo"
-)
-
 var (
 	params *Params
 )
@@ -40,7 +33,7 @@ func NewParams() *Params {
 		CleanTime:    "23:59",
 		RootStorage:  "storage",
 		PermanentDir: "permanent",
-		TempDir:      path.Join(os.TempDir(), Title),
+		TempDir:      path.Join(os.TempDir(), "Duplo"),
 		AllowPrivate: true,
 	}
 }

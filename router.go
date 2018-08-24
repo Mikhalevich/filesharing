@@ -5,15 +5,9 @@ import (
 	"path"
 	"strings"
 
+	"github.com/Mikhalevich/filesharing/handlers"
 	"github.com/gorilla/mux"
 )
-
-type StorageChecker interface {
-	Name(r *http.Request) string
-	IsPublic(name string) bool
-	Path(name string) string
-	PermanentPath(name string) string
-}
 
 type PublicStorages struct {
 	rootPath      string
@@ -59,13 +53,13 @@ type Route struct {
 type Router struct {
 	params Params
 	routes []Route
-	h      *Handlers
+	h      *handlers.Handlers
 }
 
 func NewRouter(p Params) *Router {
 	return &Router{
 		params: p,
-		h:      NewHandlers(NewPublicStorages(p.RootStorage, p.PermanentDir)),
+		h:      handlers.NewHandlers(NewPublicStorages(p.RootStorage, p.PermanentDir), params.TempDir),
 	}
 }
 
