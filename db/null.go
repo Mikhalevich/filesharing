@@ -54,7 +54,7 @@ func (n *Null) AddUser(user *User) error {
 	return errors.New("Null impl")
 }
 
-func (n *Null) AddSession(id bson.ObjectId, sessionId string, expires int64) error {
+func (n *Null) AddSession(id bson.ObjectId, session *Session) error {
 	return errors.New("Null impl")
 }
 

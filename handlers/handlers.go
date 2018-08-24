@@ -89,45 +89,20 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storage := db.NewStorage()
-	defer storage.Close()
-
-	sessionId, sessionExpires := newSessionParams()
-
-	user := &db.User{
-		Name:     userInfo.StorageName,
-		Password: crypt(userInfo.Password),
-		Sessions: []db.Session{
-			db.Session{
-				Id:      sessionId,
-				Expires: sessionExpires,
-			},
-		},
-	}
-
-	err := storage.AddUser(user)
-	if err != nil {
+	s := db.NewSession(SessionExpirePeriod)
+	if err := addUser(userInfo.StorageName, userInfo.Password, s); err != nil {
 		userInfo.AddError("common", "Storage with this name already exists")
 		return
 	}
 
-	err = h.checkStorage(userInfo.StorageName, true)
-	if err != nil {
-		userInfo.AddError("common", "Unable to create storage directory")
-		return
-	}
-
 	renderTemplate = false
-	h.setUserCookie(w, userInfo.StorageName, sessionId, sessionExpires)
-	http.Redirect(w, r, "/"+userInfo.StorageName, http.StatusFound)
+	h.setUserCookie(w, userInfo.StorageName, s.Id, s.Expires)
+	http.Redirect(w, r, fmt.Sprintf("/%s", userInfo.StorageName), http.StatusFound)
 }
 
 func (h *Handlers) isAlreadyRegistered(w http.ResponseWriter, cookies []*http.Cookie, name string) bool {
 	for _, cook := range cookies {
 		if cook.Name == name {
-			storage := db.NewStorage()
-			defer storage.Close()
-
 			clearCook := true
 			defer func() {
 				if clearCook {
@@ -135,17 +110,12 @@ func (h *Handlers) isAlreadyRegistered(w http.ResponseWriter, cookies []*http.Co
 				}
 			}()
 
-			user, err := storage.UserByName(name)
+			session, err := sessionByUserName(name, cook.Value)
 			if err != nil {
 				break
 			}
 
-			session, err := user.SessionById(cook.Value)
-			if err != nil {
-				break
-			}
-
-			if !isExpired(session.Expires) {
+			if !session.IsExpired() {
 				clearCook = false
 				return true
 			}
@@ -157,30 +127,7 @@ func (h *Handlers) isAlreadyRegistered(w http.ResponseWriter, cookies []*http.Co
 	return false
 }
 
-func (h *Handlers) isRequestAllowed(storageName string, host string) (bool, int64) {
-	storage := db.NewStorage()
-	defer storage.Close()
-
-	loginRequest, err := storage.GetRequest(storageName, host)
-	if err != nil {
-		return true, 0
-	}
-
-	if loginRequest.Count >= LoginRequestMaxCount {
-		timeDelta := time.Now().Unix() - loginRequest.LastRequest
-		allowed := timeDelta >= LoginRequestWaitingPeriod
-
-		if !allowed {
-			return false, LoginRequestWaitingPeriod - timeDelta
-		}
-
-		storage.ResetRequestCounter(loginRequest)
-	}
-
-	return true, 0
-}
-
-func (h *Handlers) generateSession(storageName string, pwd string, userHost string) (string, int64, error) {
+func (h *Handlers) generateSession(storageName string, pwd string, userHost string) (*db.Session, error) {
 	storage := db.NewStorage()
 	defer storage.Close()
 
@@ -190,7 +137,7 @@ func (h *Handlers) generateSession(storageName string, pwd string, userHost stri
 		if err != nil {
 			log.Println("Error in add request: ", err)
 		}
-		return "", 0, errors.New("Invalid storage name or password")
+		return nil, errors.New("Invalid storage name or password")
 	}
 
 	err = storage.RemoveRequest(storageName, userHost)
@@ -203,14 +150,14 @@ func (h *Handlers) generateSession(storageName string, pwd string, userHost stri
 		log.Println("Unable to remove expired sessions: ", err)
 	}
 
-	sessionId, sessionExpires := newSessionParams()
-	err = storage.AddSession(user.Id, sessionId, sessionExpires)
+	s := db.NewSession(SessionExpirePeriod)
+	err = storage.AddSession(user.Id, s)
 	if err != nil {
 		log.Println("Unable to update last login info", err)
-		return "", 0, errors.New("Internal server error, please try again later")
+		return nil, errors.New("Internal server error, please try again later")
 	}
 
-	return sessionId, sessionExpires, nil
+	return s, nil
 }
 
 func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -250,19 +197,26 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userHost := r.RemoteAddr[:strings.Index(r.RemoteAddr, ":")]
-	if allowed, waitPeriod := h.isRequestAllowed(storageName, userHost); !allowed {
-		userInfo.AddError("common", "Request is not allowed, please wait %d seconds", waitPeriod)
+
+	period, err := requestWaitPeriod(storageName, userHost, LoginRequestMaxCount, LoginRequestWaitingPeriod)
+	if err != nil {
+		userInfo.AddError("common", "Request is not allowed, internal server error")
 		return
 	}
 
-	sessionId, sessionExpires, err := h.generateSession(storageName, userInfo.Password, userHost)
+	if period > 0 {
+		userInfo.AddError("common", "Request is not allowed, please wait %d seconds", period)
+		return
+	}
+
+	s, err := h.generateSession(storageName, userInfo.Password, userHost)
 	if err != nil {
 		userInfo.AddError("common", err.Error())
 		return
 	}
 
 	renderTemplate = false
-	h.setUserCookie(w, storageName, sessionId, sessionExpires)
+	h.setUserCookie(w, storageName, s.Id, s.Expires)
 	http.Redirect(w, r, fmt.Sprintf("/%s", storageName), http.StatusFound)
 }
 
@@ -477,7 +431,7 @@ func (h *Handlers) checkSessionCookie(r *http.Request, w http.ResponseWriter, st
 				return false
 			}
 
-			if isExpired(session.Expires) {
+			if session.IsExpired() {
 				h.removeCookie(w, storageName)
 				return false
 			}
@@ -561,4 +515,14 @@ func (h *Handlers) setUserCookie(w http.ResponseWriter, sessionName, sessionId s
 
 func (h *Handlers) removeCookie(w http.ResponseWriter, sessionName string) {
 	http.SetCookie(w, &http.Cookie{Name: sessionName, Value: "", Path: "/", Expires: time.Unix(0, 0), HttpOnly: true})
+}
+
+func respondError(err error, w http.ResponseWriter, httpStatusCode int) bool {
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), httpStatusCode)
+		return true
+	}
+
+	return false
 }

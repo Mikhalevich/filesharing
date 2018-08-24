@@ -178,8 +178,8 @@ func (self *MgoStorage) AddUser(user *User) error {
 	return nil
 }
 
-func (self *MgoStorage) AddSession(id bson.ObjectId, sessionId string, expires int64) error {
-	return self.cUsers().UpdateId(id, bson.M{"$push": bson.M{"sessions": bson.M{"id": sessionId, "expires": expires}}})
+func (self *MgoStorage) AddSession(id bson.ObjectId, session *Session) error {
+	return self.cUsers().UpdateId(id, bson.M{"$push": bson.M{"sessions": bson.M{"id": session.Id, "expires": session.Expires}}})
 }
 
 func (self *MgoStorage) RemoveExpiredSessions(id bson.ObjectId, checkTime int64) error {

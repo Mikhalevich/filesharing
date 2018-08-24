@@ -1,8 +1,11 @@
 package db
 
 import (
+	"crypto/rand"
 	"crypto/sha1"
+	"encoding/base64"
 	"errors"
+	"time"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -35,6 +38,23 @@ type Session struct {
 	Expires int64  `bson:"expires"`
 }
 
+func NewSession(expirePeriod int64) *Session {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+	id := base64.URLEncoding.EncodeToString(bytes)
+
+	expire := time.Now().Unix() + expirePeriod
+
+	return &Session{
+		Id:      id,
+		Expires: expire,
+	}
+}
+
+func (s *Session) IsExpired() bool {
+	return s.Expires < time.Now().Unix()
+}
+
 type User struct {
 	Id       bson.ObjectId `bson:"_id,omitempty"`
 	Name     string        `bson:"name"`
@@ -63,7 +83,7 @@ type Storager interface {
 	UserByNameAndPassword(name string, password TypePassword) (User, error)
 	UserBySessionId(sessionId string) (User, error)
 	AddUser(user *User) error
-	AddSession(id bson.ObjectId, sessionId string, expires int64) error
+	AddSession(id bson.ObjectId, session *Session) error
 	RemoveExpiredSessions(id bson.ObjectId, checkTime int64) error
 }
 
