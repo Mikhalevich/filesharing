@@ -241,7 +241,7 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		fn := fileInfo.UniqueName(fi, sPath)
 		err = os.Rename(path.Join(h.temporaryDirectory, fi), path.Join(sPath, fn))
 		if err != nil {
-			log.Println(err.Error())
+			log.Println(err)
 		}
 	}
 

@@ -72,19 +72,27 @@ func (self User) SessionById(id string) (Session, error) {
 	return Session{}, errors.New("Not found")
 }
 
-type Storager interface {
-	Close()
+type Requester interface {
 	GetRequest(name, remoteAddr string) (LoginRequest, error)
 	AddRequest(name, remoteAddr string) error
 	RemoveRequest(name, remoteAddr string) error
 	ResetRequestCounter(request LoginRequest) error
 	ClearRequests() error
+}
+
+type Userer interface {
 	UserByName(name string) (User, error)
 	UserByNameAndPassword(name string, password TypePassword) (User, error)
 	UserBySessionId(sessionId string) (User, error)
 	AddUser(user *User) error
 	AddSession(id bson.ObjectId, session *Session) error
 	RemoveExpiredSessions(id bson.ObjectId, checkTime int64) error
+}
+
+type Storager interface {
+	Requester
+	Userer
+	Close()
 }
 
 func NewStorage() Storager {
