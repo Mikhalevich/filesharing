@@ -1,4 +1,4 @@
-package fileInfo
+package fs
 
 import (
 	"fmt"
@@ -27,7 +27,7 @@ const (
 )
 
 var (
-	PermanentDir = ""
+	PermanentDir string
 )
 
 func (b ByteSize) String() string {
@@ -97,8 +97,7 @@ func (fil FileInfoList) Exist(name string) bool {
 func ListDir(dirPath string) FileInfoList {
 	osFiList, err := ioutil.ReadDir(dirPath)
 	if err != nil {
-		log.Println(err.Error)
-
+		log.Println(err)
 		return FileInfoList{}
 	}
 
@@ -113,6 +112,12 @@ func ListDir(dirPath string) FileInfoList {
 	return fiList
 }
 
+func RunCleanWatchdog(dirPath string, protectedDir string, hour int, minute int) {
+	now := time.Now()
+	cleanTime := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, now.Second(), now.Nanosecond(), now.Location())
+	go CleanDir(dirPath, protectedDir, cleanTime)
+}
+
 func CleanDir(dirPath string, protectedDir string, t time.Time) {
 	if !path.IsAbs(dirPath) {
 		dirPath, _ = filepath.Abs(dirPath)
@@ -121,75 +126,65 @@ func CleanDir(dirPath string, protectedDir string, t time.Time) {
 	tick := func() <-chan time.Time {
 		now := time.Now()
 
-		if t.Before(now) {
+		for t.Before(now) {
 			t = t.Add(time.Hour * 24)
 		}
 
-		return time.Tick(t.Sub(now))
+		return time.After(t.Sub(now))
 	}
 
 	for {
-		c := tick()
+		now := <-tick()
+		storages, err := ioutil.ReadDir(dirPath)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 
-		for now := range c {
-			storages, err := ioutil.ReadDir(dirPath)
+		for _, storage := range storages {
+			if !storage.IsDir() {
+				continue
+			}
+
+			sPath := path.Join(dirPath, storage.Name())
+
+			log.Printf("time: %v; cleaning dir: %q\n", now, sPath)
+
+			files, err := ioutil.ReadDir(sPath)
 			if err != nil {
 				log.Println(err)
 				return
 			}
 
-			for _, storage := range storages {
-				if !storage.IsDir() {
+			for _, file := range files {
+				if file.IsDir() && file.Name() == protectedDir {
 					continue
 				}
 
-				sPath := path.Join(dirPath, storage.Name())
-
-				log.Printf("time: %v; cleaning dir: %q\n", now, sPath)
-
-				files, err := ioutil.ReadDir(sPath)
+				err = os.Remove(path.Join(sPath, file.Name()))
 				if err != nil {
 					log.Println(err)
-					return
-				}
-
-				for _, file := range files {
-					if file.IsDir() && file.Name() == protectedDir {
-						continue
-					}
-
-					err = os.Remove(path.Join(sPath, file.Name()))
-					if err != nil {
-						log.Println(err)
-					}
 				}
 			}
-
-			break
 		}
 	}
 }
 
 func UniqueName(fileName string, dir string) string {
-	if ld := ListDir(dir); ld.Exist(fileName) {
-		ext := filepath.Ext(fileName)
+	ld := ListDir(dir)
+	if !ld.Exist(fileName) {
+		return fileName
+	}
 
-		fileNameTpl := strings.TrimSuffix(fileName, ext) + "_%d" + ext
+	ext := filepath.Ext(fileName)
 
-		count := 1
+	nameTemplate := fmt.Sprintf("%s%s%s", strings.TrimSuffix(fileName, ext), "_%d", ext)
 
-		var f func() string
-		f = func() string {
-			fileName = fmt.Sprintf(fileNameTpl, count)
-			if ld.Exist(fileName) {
-				count++
-				return f()
-			}
-
-			return fileName
+	for count := 1; ; count++ {
+		fileName = fmt.Sprintf(nameTemplate, count)
+		if !ld.Exist(fileName) {
+			break
 		}
-
-		return f()
 	}
 
 	return fileName

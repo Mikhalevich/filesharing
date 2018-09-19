@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/Mikhalevich/filesharing/db"
-	"github.com/Mikhalevich/filesharing/fileInfo"
+	"github.com/Mikhalevich/filesharing/fs"
 	"github.com/Mikhalevich/filesharing/templates"
 	"github.com/gorilla/context"
 )
@@ -194,7 +194,7 @@ func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	viewTemplate := templates.NewTemplateView(Title, fileInfo.ListDir(sPath))
+	viewTemplate := templates.NewTemplateView(Title, fs.ListDir(sPath))
 
 	err = viewTemplate.Execute(w)
 	if err != nil {
@@ -238,7 +238,7 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, fi := range files {
-		fn := fileInfo.UniqueName(fi, sPath)
+		fn := fs.UniqueName(fi, sPath)
 		err = os.Rename(path.Join(h.temporaryDirectory, fi), path.Join(sPath, fn))
 		if err != nil {
 			log.Println(err)
@@ -249,7 +249,7 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) storeTempFile(fileName string, part *multipart.Part) (string, error) {
-	fileName = fileInfo.UniqueName(fileName, h.temporaryDirectory)
+	fileName = fs.UniqueName(fileName, h.temporaryDirectory)
 	f, err := os.Create(path.Join(h.temporaryDirectory, fileName))
 	if err != nil {
 		return "", err
@@ -276,7 +276,7 @@ func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sPath := h.contextStorage(r)
-	fiList := fileInfo.ListDir(sPath)
+	fiList := fs.ListDir(sPath)
 	if !fiList.Exist(fileName) {
 		respondError(errors.New(fileName+" doesn't exist"), w, http.StatusBadRequest)
 		return
@@ -305,7 +305,7 @@ func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sPath := h.contextStorage(r)
-	title = fileInfo.UniqueName(title, sPath)
+	title = fs.UniqueName(title, sPath)
 
 	file, err := os.Create(path.Join(sPath, title))
 	if respondError(err, w, http.StatusInternalServerError) {

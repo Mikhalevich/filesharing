@@ -10,7 +10,7 @@ import (
 
 	"github.com/Mikhalevich/argparser"
 	"github.com/Mikhalevich/filesharing/db"
-	"github.com/Mikhalevich/filesharing/fileInfo"
+	"github.com/Mikhalevich/filesharing/fs"
 )
 
 var (
@@ -89,10 +89,8 @@ func main() {
 		return
 	}
 
-	fileInfo.PermanentDir = params.PermanentDir
-	now := time.Now()
-	go fileInfo.CleanDir(params.RootStorage, params.PermanentDir,
-		time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), now.Second(), now.Nanosecond(), now.Location()))
+	fs.PermanentDir = params.PermanentDir
+	fs.RunCleanWatchdog(params.RootStorage, params.PermanentDir, t.Hour(), t.Minute())
 
 	// check db, create indexes, remove temporary data
 	db.UseDB = params.AllowPrivate

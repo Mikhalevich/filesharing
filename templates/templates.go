@@ -7,7 +7,7 @@ import (
 	"path"
 	"runtime"
 
-	"github.com/Mikhalevich/filesharing/fileInfo"
+	"github.com/Mikhalevich/filesharing/fs"
 )
 
 func templatePath(name string) string {
@@ -77,10 +77,10 @@ func (t *TemplateRegister) Execute(wr io.Writer) error {
 type TemplateView struct {
 	TemplateBase
 	Title        string
-	FileInfoList []fileInfo.FileInfo
+	FileInfoList []fs.FileInfo
 }
 
-func NewTemplateView(title string, list []fileInfo.FileInfo) *TemplateView {
+func NewTemplateView(title string, list []fs.FileInfo) *TemplateView {
 	return &TemplateView{
 		TemplateBase: *NewTemplateBase("view.html"),
 		Title:        title,
