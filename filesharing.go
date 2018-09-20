@@ -90,14 +90,14 @@ func main() {
 	}
 
 	fs.PermanentDir = params.PermanentDir
-	fs.RunCleanWorker(params.RootStorage, params.PermanentDir, t.Hour(), t.Minute())
+	cleaner := fs.NewCleaner(params.RootStorage, params.PermanentDir)
+	cleaner.Run(t.Hour(), t.Minute())
 
 	// check db, create indexes, remove temporary data
 	db.UseDB = params.AllowPrivate
 	s := db.NewStorage()
 	s.Close()
 
-	//router := NewRouter(params.AllowPrivate)
 	router := NewRouter(*params)
 
 	log.Printf("Running at %s\n", params.Host)
