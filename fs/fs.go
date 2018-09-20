@@ -94,8 +94,18 @@ func (fil FileInfoList) Exist(name string) bool {
 	return false
 }
 
-func ListDir(dirPath string) FileInfoList {
-	osFiList, err := ioutil.ReadDir(dirPath)
+type Directory struct {
+	Path string
+}
+
+func NewDirectory(path string) *Directory {
+	return &Directory{
+		Path: path,
+	}
+}
+
+func (d *Directory) List() FileInfoList {
+	osFiList, err := ioutil.ReadDir(d.Path)
 	if err != nil {
 		log.Println(err)
 		return FileInfoList{}
@@ -112,13 +122,33 @@ func ListDir(dirPath string) FileInfoList {
 	return fiList
 }
 
-func RunCleanWatchdog(dirPath string, protectedDir string, hour int, minute int) {
-	now := time.Now()
-	cleanTime := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, now.Second(), now.Nanosecond(), now.Location())
-	go CleanDir(dirPath, protectedDir, cleanTime)
+func (d *Directory) UniqueName(fileName string) string {
+	ld := d.List()
+	if !ld.Exist(fileName) {
+		return fileName
+	}
+
+	ext := filepath.Ext(fileName)
+
+	nameTemplate := fmt.Sprintf("%s%s%s", strings.TrimSuffix(fileName, ext), "_%d", ext)
+
+	for count := 1; ; count++ {
+		fileName = fmt.Sprintf(nameTemplate, count)
+		if !ld.Exist(fileName) {
+			break
+		}
+	}
+
+	return fileName
 }
 
-func CleanDir(dirPath string, protectedDir string, t time.Time) {
+func RunCleanWorker(dirPath string, protectedDir string, hour int, minute int) {
+	now := time.Now()
+	cleanTime := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, now.Second(), now.Nanosecond(), now.Location())
+	go cleanDir(dirPath, protectedDir, cleanTime)
+}
+
+func cleanDir(dirPath string, protectedDir string, t time.Time) {
 	if !path.IsAbs(dirPath) {
 		dirPath, _ = filepath.Abs(dirPath)
 	}
@@ -168,24 +198,4 @@ func CleanDir(dirPath string, protectedDir string, t time.Time) {
 			}
 		}
 	}
-}
-
-func UniqueName(fileName string, dir string) string {
-	ld := ListDir(dir)
-	if !ld.Exist(fileName) {
-		return fileName
-	}
-
-	ext := filepath.Ext(fileName)
-
-	nameTemplate := fmt.Sprintf("%s%s%s", strings.TrimSuffix(fileName, ext), "_%d", ext)
-
-	for count := 1; ; count++ {
-		fileName = fmt.Sprintf(nameTemplate, count)
-		if !ld.Exist(fileName) {
-			break
-		}
-	}
-
-	return fileName
 }

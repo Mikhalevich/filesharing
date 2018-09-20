@@ -90,7 +90,7 @@ func main() {
 	}
 
 	fs.PermanentDir = params.PermanentDir
-	fs.RunCleanWatchdog(params.RootStorage, params.PermanentDir, t.Hour(), t.Minute())
+	fs.RunCleanWorker(params.RootStorage, params.PermanentDir, t.Hour(), t.Minute())
 
 	// check db, create indexes, remove temporary data
 	db.UseDB = params.AllowPrivate
