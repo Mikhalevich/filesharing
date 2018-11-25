@@ -203,14 +203,14 @@ func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handlers) JsonViewHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) JSONViewHandler(w http.ResponseWriter, r *http.Request) {
 	sPath := h.contextStorage(r)
 	_, err := os.Stat(sPath)
 	if respondError(err, w, http.StatusInternalServerError) {
 		return
 	}
 
-	list := fs.ListDir(sPath)
+	list := fs.NewDirectory(sPath).List()
 
 	type JSONInfo struct {
 		Name string `json:"name"`
@@ -219,8 +219,6 @@ func (h *Handlers) JsonViewHandler(w http.ResponseWriter, r *http.Request) {
 	for _, l := range list {
 		info = append(info, JSONInfo{Name: l.Name()})
 	}
-
-	fmt.Println(info)
 
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)

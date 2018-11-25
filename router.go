@@ -108,7 +108,7 @@ func (r *Router) makeRoutes() {
 			false,
 			true,
 			true,
-			http.HandlerFunc(r.h.JsonViewHandler),
+			http.HandlerFunc(r.h.JSONViewHandler),
 		},
 		Route{
 			"/api/{storage}/",
@@ -117,7 +117,7 @@ func (r *Router) makeRoutes() {
 			false,
 			true,
 			false,
-			http.HandlerFunc(r.h.JsonViewHandler),
+			http.HandlerFunc(r.h.JSONViewHandler),
 		},
 		Route{
 			"/{storage}/index.html",
