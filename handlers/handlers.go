@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -197,6 +198,33 @@ func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	viewTemplate := templates.NewTemplateView(Title, fs.NewDirectory(sPath).List())
 
 	err = viewTemplate.Execute(w)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func (h *Handlers) JsonViewHandler(w http.ResponseWriter, r *http.Request) {
+	sPath := h.contextStorage(r)
+	_, err := os.Stat(sPath)
+	if respondError(err, w, http.StatusInternalServerError) {
+		return
+	}
+
+	list := fs.ListDir(sPath)
+
+	type JSONInfo struct {
+		Name string `json:"name"`
+	}
+	info := make([]JSONInfo, 0, len(list))
+	for _, l := range list {
+		info = append(info, JSONInfo{Name: l.Name()})
+	}
+
+	fmt.Println(info)
+
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	err = enc.Encode(info)
 	if err != nil {
 		log.Println(err)
 	}
