@@ -3,7 +3,7 @@ package db
 import (
 	"time"
 
-	"gopkg.in/mgo.v2"
+	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -93,7 +93,12 @@ func (self *MgoStorage) clearTemporaryData() error {
 
 func (self *MgoStorage) GetRequest(name, remoteAddr string) (LoginRequest, error) {
 	request := LoginRequest{}
-	if err := self.cLoginRequest().Find(bson.M{"name": name, "remote_addr": remoteAddr}).One(&request); err != nil {
+	err := self.cLoginRequest().Find(bson.M{"name": name, "remote_addr": remoteAddr}).One(&request)
+
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			return LoginRequest{}, nil
+		}
 		return LoginRequest{}, err
 	}
 
