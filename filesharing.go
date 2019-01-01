@@ -39,10 +39,11 @@ func NewParams() *Params {
 }
 
 func loadParams() (*Params, error) {
-	host := argparser.String("host", "", "listening port and hostname")
+	parser := argparser.NewParser()
+	host := parser.String("host", "", "listening port and hostname")
 
 	par := NewParams()
-	p, err, gen := argparser.Parse(par)
+	p, err, gen := parser.Parse(par)
 	if err != nil {
 		return nil, err
 	}
