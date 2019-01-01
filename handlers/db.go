@@ -59,6 +59,7 @@ func requestWaitPeriod(name string, host string, maxCount int, waitPeriod int64)
 
 	loginRequest, err := storage.GetRequest(name, host)
 	if err != nil {
+		log.Printf("Error in get request: %s\n", err)
 		return 0, err
 	}
 
@@ -72,6 +73,7 @@ func requestWaitPeriod(name string, host string, maxCount int, waitPeriod int64)
 
 		err = storage.ResetRequestCounter(loginRequest)
 		if err != nil {
+			log.Printf("Error in reset request counter: %s\n", err)
 			return 0, err
 		}
 	}

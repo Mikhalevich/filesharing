@@ -4,15 +4,20 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"os"
 	"path"
-	"runtime"
+	"path/filepath"
 
 	"github.com/Mikhalevich/filesharing/fs"
 )
 
 func templatePath(name string) string {
-	_, filename, _, _ := runtime.Caller(0)
-	return path.Join(path.Dir(filename), "html", name)
+	executable, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+
+	return path.Join(filepath.Dir(executable), "templates/html", name)
 }
 
 var (
