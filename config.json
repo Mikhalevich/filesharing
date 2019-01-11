@@ -1,1 +1,8 @@
-{"time":"23:59","storage":"storage","permanent_dir":"permanent","temp_dir":"tmp/Duplo","allow_private": true}
+{
+    "host": ":8080",
+    "time": "23:59",
+    "storage": "storage",
+    "permanent_dir": "permanent",
+    "temp_dir": "tmp/Duplo",
+    "allow_private": false
+}
