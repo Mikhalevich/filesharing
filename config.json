@@ -4,5 +4,8 @@
     "storage": "storage",
     "permanent_dir": "permanent",
     "temp_dir": "tmp/Duplo",
-    "allow_private": false
+    "allow_private": true,
+    "db": {
+        "host": "mongodb://mongo:27017"
+    }
 }

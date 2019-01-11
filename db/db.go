@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	UseDB bool = true
+	UseDB  bool = true
+	DBHost string
 )
 
 type TypePassword [sha1.Size]byte
@@ -97,7 +98,7 @@ type Storager interface {
 
 func NewStorage() Storager {
 	if UseDB {
-		return NewMgoStorage()
+		return NewMgoStorage(DBHost)
 	}
 
 	return NewNullStorage()

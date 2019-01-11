@@ -17,14 +17,19 @@ var (
 	params *Params
 )
 
+type DBParams struct {
+	Host string `json:"host,omitempty"`
+}
+
 type Params struct {
-	Host         string `json:"host,omitempty"`
-	CleanTime    string `json:"time,omitempty"`
-	Title        string `json:"title,omitempty"`
-	RootStorage  string `json:"storage,omitempty"`
-	PermanentDir string `json:"permanent_dir,omitempty"`
-	TempDir      string `json:"temp_dir,omitempty"`
-	AllowPrivate bool   `json:"allow_private,omitempty"`
+	Host         string   `json:"host,omitempty"`
+	CleanTime    string   `json:"time,omitempty"`
+	Title        string   `json:"title,omitempty"`
+	RootStorage  string   `json:"storage,omitempty"`
+	PermanentDir string   `json:"permanent_dir,omitempty"`
+	TempDir      string   `json:"temp_dir,omitempty"`
+	AllowPrivate bool     `json:"allow_private,omitempty"`
+	DB           DBParams `json:"db,omitempty"`
 }
 
 func NewParams() *Params {
@@ -62,6 +67,10 @@ func loadParams() (*Params, error) {
 		return nil, errors.New("Invalid host name")
 	}
 
+	if par.DB.Host == "" {
+		par.DB.Host = "localhost"
+	}
+
 	err = os.MkdirAll(par.RootStorage, os.ModePerm)
 	if err != nil {
 		return nil, err
@@ -96,6 +105,7 @@ func main() {
 
 	// check db, create indexes, remove temporary data
 	db.UseDB = params.AllowPrivate
+	db.DBHost = params.DB.Host
 	s := db.NewStorage()
 	s.Close()
 

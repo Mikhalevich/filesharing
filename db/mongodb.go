@@ -9,7 +9,6 @@ import (
 
 const (
 	DatabaseName           = "users"
-	DatabaseHost           = "localhost"
 	CollectionUsers        = "users"
 	CollectionLoginRequest = "request"
 )
@@ -18,17 +17,17 @@ var (
 	sessionPool *mgo.Session
 )
 
-func initPool() {
+func initPool(host string) {
 	if sessionPool != nil {
 		return
 	}
 
 	var err error
-	if sessionPool, err = mgo.Dial(DatabaseHost); err != nil {
+	if sessionPool, err = mgo.Dial(host); err != nil {
 		panic(err)
 	}
 
-	storage := NewMgoStorage()
+	storage := NewMgoStorage(host)
 	defer storage.Close()
 
 	if err = storage.createIndexes(); err != nil {
@@ -44,8 +43,8 @@ type MgoStorage struct {
 	session *mgo.Session
 }
 
-func NewMgoStorage() *MgoStorage {
-	initPool()
+func NewMgoStorage(host string) *MgoStorage {
+	initPool(host)
 	storage := &MgoStorage{
 		session: sessionPool.Copy(),
 	}
