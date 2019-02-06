@@ -27,7 +27,7 @@
 					</div>
 					<form action="upload/" id="dropzone" class="dropzone" method="post" enctype="multipart/form-data">
 						<div class="form-group">
-							<table class="table table-bordered">
+							<table id="file_table" class="table table-bordered">
 								<thead>
 									<tr>
 										<th class="col-md-1">#</th>
@@ -92,6 +92,13 @@
 		</div>
 
 		<script>
+			// reverse table order
+			var table = document.getElementById("file_table");
+			var rows = table.rows;
+			for (var i = 1; i < rows.length; i++) {
+				rows[i].parentNode.insertBefore(rows[rows.length-1], rows[i]);
+			}
+
             // disable confirmation dialog
             Dropzone.confirm = function(question, accepted, rejected) {
                    return accepted()
