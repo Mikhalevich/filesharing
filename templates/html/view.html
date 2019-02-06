@@ -32,6 +32,7 @@
 									<tr>
 										<th class="col-md-1">#</th>
 										<th class="col-md-8">Name</th>
+										<th class="col-md-2">Time</th>
 										<th class="col-md-2">Size</th>
 										<th class="col-md-1">Action</th>
 									</tr>
@@ -40,7 +41,14 @@
                                     {{range $index, $fileInfo := .FileInfoList}}
                                         <tr id="row_{{$index}}">
                                             <td>{{increment $index}}</td>
-                                            <td id="name"><a href="{{$fileInfo.Name}}">{{$fileInfo.Name}}</a></td>
+											<td id="name"><a href="{{$fileInfo.Name}}">{{$fileInfo.Name}}</a></td>
+											<td>
+												<script type="text/javascript">
+													var file_date = new Date({{$fileInfo.ModTime.Unix}} * 1000);
+													var file_date_string = file_date.getHours() + ":" + file_date.getMinutes() + ":" + file_date.getSeconds()
+													document.write(file_date_string);
+												</script>
+											</td>
                                             <td>{{$fileInfo.Size}}</td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-danger btn-xs" onclick="removeFileRequest({{$index}}, '{{$fileInfo.Name}}')">&times;</button>
