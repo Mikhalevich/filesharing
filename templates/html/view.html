@@ -44,8 +44,14 @@
 											<td id="name"><a href="{{$fileInfo.Name}}">{{$fileInfo.Name}}</a></td>
 											<td>
 												<script type="text/javascript">
+													function addZero(i) {
+														if (i < 10) {
+															i = "0" + i;
+														}
+														return i;
+													}
 													var file_date = new Date({{$fileInfo.ModTime.Unix}} * 1000);
-													var file_date_string = file_date.getHours() + ":" + file_date.getMinutes() + ":" + file_date.getSeconds()
+													var file_date_string = addZero(file_date.getHours()) + ":" + addZero(file_date.getMinutes()) + ":" + addZero(file_date.getSeconds());
 													document.write(file_date_string);
 												</script>
 											</td>
