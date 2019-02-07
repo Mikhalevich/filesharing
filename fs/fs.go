@@ -81,7 +81,7 @@ func (fil FileInfoList) Less(i, j int) bool {
 		}
 	}
 
-	return fil[i].ModTime().Before(fil[j].ModTime())
+	return fil[i].ModTime().After(fil[j].ModTime())
 }
 
 func (fil FileInfoList) Exist(name string) bool {
