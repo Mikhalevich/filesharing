@@ -1,4 +1,4 @@
-package main
+package router
 
 import (
 	"net/http"
@@ -51,15 +51,17 @@ type Route struct {
 }
 
 type Router struct {
-	params Params
-	routes []Route
-	h      *handlers.Handlers
+	rootStorage string
+	enableAuth  bool
+	routes      []Route
+	h           *handlers.Handlers
 }
 
-func NewRouter(p Params) *Router {
+func NewRouter(root string, ea bool, handl *handlers.Handlers) *Router {
 	return &Router{
-		params: p,
-		h:      handlers.NewHandlers(NewPublicStorages(p.RootStorage, p.PermanentDir), params.TempDir),
+		rootStorage: root,
+		enableAuth:  ea,
+		h:           handl,
 	}
 }
 
@@ -162,7 +164,7 @@ func (r *Router) makeRoutes() {
 			true,
 			false,
 			false,
-			http.FileServer(http.Dir(params.RootStorage)),
+			http.FileServer(http.Dir(r.rootStorage)),
 		},
 		Route{
 			"/{storage}/upload/",
@@ -221,7 +223,7 @@ func (r *Router) makeRoutes() {
 	}
 }
 
-func (r *Router) handler() http.Handler {
+func (r *Router) Handler() http.Handler {
 	r.makeRoutes()
 
 	router := mux.NewRouter().StrictSlash(true)
@@ -236,7 +238,7 @@ func (r *Router) handler() http.Handler {
 		muxRoute.Methods(strings.Split(route.Methods, ",")...)
 
 		handler := route.Handler
-		if r.params.AllowPrivate && route.NeedAuth {
+		if r.enableAuth && route.NeedAuth {
 			handler = r.h.CheckAuth(handler)
 		}
 
