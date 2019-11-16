@@ -14,6 +14,7 @@ FROM scratch
 COPY --from=builder /go/bin/filesharing /go/bin/filesharing
 COPY --from=builder /app/config.json /go/bin/config.json
 COPY --from=builder /app/templates/html /go/bin/templates/html
+COPY --from=builder /app/res /go/bin/res
 
 EXPOSE 8080
 
