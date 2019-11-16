@@ -15,19 +15,15 @@ import (
 	"github.com/Mikhalevich/filesharing/fs"
 	"github.com/Mikhalevich/filesharing/templates"
 	"github.com/Mikhalevich/goauth"
-	"github.com/gorilla/context"
 )
 
 const (
-	SessionExpirePeriod       = 1 * 60 * 60 * 24 * 30 // sec
-	LoginRequestMaxCount      = 3
-	LoginRequestWaitingPeriod = 60 // sec
-	Title                     = "Duplo"
-	ContextStoragePath        = "storagePath"
+	Title = "Duplo"
 )
 
 type StorageChecker interface {
 	Name(r *http.Request) string
+	CurrentPath(r *http.Request) string
 	IsPublic(name string) bool
 	Path(name string) string
 	PermanentPath(name string) string
@@ -58,7 +54,7 @@ func (h *Handlers) RootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := h.contextStorage(r)
+	sPath := h.sc.CurrentPath(r)
 	indexPath := path.Join(sPath, "index.html")
 	f, err := os.Open(indexPath)
 	if err != nil {
@@ -162,7 +158,7 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := h.contextStorage(r)
+	sPath := h.sc.CurrentPath(r)
 	_, err := os.Stat(sPath)
 	if respondError(err, w, http.StatusInternalServerError) {
 		return
@@ -177,7 +173,7 @@ func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) JSONViewHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := h.contextStorage(r)
+	sPath := h.sc.CurrentPath(r)
 	_, err := os.Stat(sPath)
 	if respondError(err, w, http.StatusInternalServerError) {
 		return
@@ -213,7 +209,7 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	files := []string{}
-	sPath := h.contextStorage(r)
+	sPath := h.sc.CurrentPath(r)
 	for {
 		part, err := mr.NextPart()
 		if err == io.EOF {
@@ -274,7 +270,7 @@ func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sPath := h.contextStorage(r)
+	sPath := h.sc.CurrentPath(r)
 	fiList := fs.NewDirectory(sPath).List()
 	if !fiList.Exist(fileName) {
 		respondError(errors.New(fileName+" doesn't exist"), w, http.StatusBadRequest)
@@ -303,7 +299,7 @@ func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sPath := h.contextStorage(r)
+	sPath := h.sc.CurrentPath(r)
 	title = fs.NewDirectory(sPath).UniqueName(title)
 
 	file, err := os.Create(path.Join(sPath, title))
@@ -345,7 +341,7 @@ func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 		}
 
 		if h.sc.IsPublic(storageName) {
-			err = h.checkStorage(storageName, false)
+			err = h.createIfNotExist(storageName, false)
 			if err != nil {
 				respondError(err, w, http.StatusInternalServerError)
 				return
@@ -360,7 +356,7 @@ func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		err = h.checkStorage(storageName, true)
+		err = h.createIfNotExist(storageName, true)
 		if err != nil {
 			respondError(err, w, http.StatusInternalServerError)
 			return
@@ -368,36 +364,6 @@ func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-func (h *Handlers) StorePath(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		storage := h.sc.Name(r)
-		if storage == "" {
-			log.Printf("Invalid storage request, url = %s", r.URL)
-		} else {
-			context.Set(r, ContextStoragePath, h.sc.Path(storage))
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (h *Handlers) StorePermanentPath(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		storage := h.sc.Name(r)
-		if storage == "" {
-			log.Printf("Invalid storage request, url = %s", r.URL)
-		} else {
-			context.Set(r, ContextStoragePath, h.sc.PermanentPath(storage))
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (h *Handlers) contextStorage(r *http.Request) string {
-	return context.Get(r, ContextStoragePath).(string)
 }
 
 func (h *Handlers) createSkel(storageName string, permanent bool) error {
@@ -425,7 +391,7 @@ func (h *Handlers) createSkel(storageName string, permanent bool) error {
 	return nil
 }
 
-func (h *Handlers) checkStorage(storageName string, permanent bool) error {
+func (h *Handlers) createIfNotExist(storageName string, permanent bool) error {
 	_, err := os.Stat(h.sc.Path(storageName))
 	if err != nil {
 		if os.IsNotExist(err) {

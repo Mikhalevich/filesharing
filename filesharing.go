@@ -141,7 +141,7 @@ func main() {
 	}
 
 	h := handlers.NewHandlers(storageChecker, auth, params.TempDir)
-	r := router.NewRouter(params.RootStorage, params.AllowPrivate, h)
+	r := router.NewRouter(params.RootStorage, params.PermanentDir, params.AllowPrivate, h)
 
 	log.Printf("Running at %s\n", params.Host)
 

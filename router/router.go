@@ -1,12 +1,18 @@
 package router
 
 import (
+	"log"
 	"net/http"
 	"path"
 	"strings"
 
 	"github.com/Mikhalevich/filesharing/handlers"
+	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
+)
+
+const (
+	ContextStoragePath = "storagePath"
 )
 
 type PublicStorages struct {
@@ -17,6 +23,10 @@ type PublicStorages struct {
 
 func (p *PublicStorages) Name(r *http.Request) string {
 	return mux.Vars(r)["storage"]
+}
+
+func (p *PublicStorages) CurrentPath(r *http.Request) string {
+	return context.Get(r, ContextStoragePath).(string)
 }
 
 func (p *PublicStorages) IsPublic(name string) bool {
@@ -51,17 +61,19 @@ type Route struct {
 }
 
 type Router struct {
-	rootStorage string
-	enableAuth  bool
-	routes      []Route
-	h           *handlers.Handlers
+	rootStorage      string
+	permanentStorage string
+	enableAuth       bool
+	routes           []Route
+	h                *handlers.Handlers
 }
 
-func NewRouter(root string, ea bool, handl *handlers.Handlers) *Router {
+func NewRouter(root, permanent string, ea bool, handl *handlers.Handlers) *Router {
 	return &Router{
-		rootStorage: root,
-		enableAuth:  ea,
-		h:           handl,
+		rootStorage:      root,
+		permanentStorage: permanent,
+		enableAuth:       ea,
+		h:                handl,
 	}
 }
 
@@ -181,6 +193,40 @@ func (r *Router) makeRoutes() {
 	}
 }
 
+func (r *Router) path(name string) string {
+	return path.Join(r.rootStorage, name)
+}
+
+func (r *Router) permanentPath(name string) string {
+	return path.Join(r.path(name), r.permanentStorage)
+}
+
+func (r *Router) storePath(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		storage := mux.Vars(request)["storage"]
+		if storage == "" {
+			log.Printf("Invalid storage request, url = %s", request.URL)
+		} else {
+			context.Set(request, ContextStoragePath, r.path(storage))
+		}
+
+		next.ServeHTTP(w, request)
+	})
+}
+
+func (r *Router) storePermanentPath(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		storage := mux.Vars(request)["storage"]
+		if storage == "" {
+			log.Printf("Invalid storage request, url = %s", request.URL)
+		} else {
+			context.Set(request, ContextStoragePath, r.permanentPath(storage))
+		}
+
+		next.ServeHTTP(w, request)
+	})
+}
+
 func (r *Router) Handler() http.Handler {
 	r.makeRoutes()
 
@@ -202,9 +248,9 @@ func (r *Router) Handler() http.Handler {
 
 		if route.StorePath || route.StorePermanentPath {
 			if route.StorePermanentPath {
-				handler = r.h.StorePermanentPath(handler)
+				handler = r.storePermanentPath(handler)
 			} else {
-				handler = r.h.StorePath(handler)
+				handler = r.storePath(handler)
 			}
 		}
 
