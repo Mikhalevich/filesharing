@@ -117,23 +117,29 @@ func main() {
 		return
 	}
 
-	time.Sleep(time.Second * 2)
-	pg, err := db.NewPostgres(params.DB.Host)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer pg.Close()
-
-	es := &email.GomailSender{
-		Host:     "smtp.gmail.com",
-		Port:     587,
-		From:     "",
-		Password: "",
-	}
-
 	storageChecker := router.NewPublicStorages(params.RootStorage, params.PermanentDir)
-	auth := goauth.NewAuthentificator(pg, pg, NewCookieSession(storageChecker, 1*60*60*24*30), es)
+
+	var auth goauth.Authentifier
+	if params.AllowPrivate {
+		time.Sleep(time.Second * 2)
+		pg, err := db.NewPostgres(params.DB.Host)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer pg.Close()
+
+		es := &email.GomailSender{
+			Host:     "smtp.gmail.com",
+			Port:     587,
+			From:     "",
+			Password: "",
+		}
+		auth = goauth.NewAuthentificator(pg, pg, NewCookieSession(storageChecker, 1*60*60*24*30), es)
+	} else {
+		auth = goauth.NewNullAuthentificator()
+	}
+
 	h := handlers.NewHandlers(storageChecker, auth, params.TempDir)
 	r := router.NewRouter(params.RootStorage, params.AllowPrivate, h)
 
