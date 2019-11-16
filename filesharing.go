@@ -117,7 +117,8 @@ func main() {
 		return
 	}
 
-	pg, err := db.NewPostgres(db.PGParams{DBName: "test"})
+	time.Sleep(time.Second * 2)
+	pg, err := db.NewPostgres(params.DB.Host)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -132,9 +133,7 @@ func main() {
 	}
 
 	storageChecker := router.NewPublicStorages(params.RootStorage, params.PermanentDir)
-
-	auth := goauth.NewAuthentificator(pg, pg, NewCookieSession(storageChecker, 5*60), es)
-
+	auth := goauth.NewAuthentificator(pg, pg, NewCookieSession(storageChecker, 1*60*60*24*30), es)
 	h := handlers.NewHandlers(storageChecker, auth, params.TempDir)
 	r := router.NewRouter(params.RootStorage, params.AllowPrivate, h)
 

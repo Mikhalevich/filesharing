@@ -1,16 +1,20 @@
-version: "2"
+version: "3"
 services:
   web:
     build: .
     ports:
     - "8080:8080"
     depends_on:
-    - mongo
-  mongo:
-    image: mongo
+    - dbpg
+  dbpg:
+    image: postgres
     ports:
-    - "27017:27017"
+    - 5432:5432
+    environment:
+      POSTGRES_DB: filesharing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
     volumes:
-    - data-volume:/data/db
+    - db-data-filesharing:/var/lib/postgresql/data
 volumes:
-  data-volume:
+  db-data-filesharing:
