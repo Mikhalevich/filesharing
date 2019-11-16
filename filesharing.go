@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +13,9 @@ import (
 	"github.com/Mikhalevich/filesharing/fs"
 	"github.com/Mikhalevich/filesharing/handlers"
 	"github.com/Mikhalevich/filesharing/router"
+	"github.com/Mikhalevich/goauth"
+	"github.com/Mikhalevich/goauth/db"
+	"github.com/Mikhalevich/goauth/email"
 )
 
 var (
@@ -113,7 +117,25 @@ func main() {
 		return
 	}
 
-	h := handlers.NewHandlers(router.NewPublicStorages(params.RootStorage, params.PermanentDir), params.TempDir)
+	pg, err := db.NewPostgres(db.PGParams{DBName: "test"})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer pg.Close()
+
+	es := &email.GomailSender{
+		Host:     "smtp.gmail.com",
+		Port:     587,
+		From:     "",
+		Password: "",
+	}
+
+	storageChecker := router.NewPublicStorages(params.RootStorage, params.PermanentDir)
+
+	auth := goauth.NewAuthentificator(pg, pg, NewCookieSession(storageChecker, 5*60), es)
+
+	h := handlers.NewHandlers(storageChecker, auth, params.TempDir)
 	r := router.NewRouter(params.RootStorage, params.AllowPrivate, h)
 
 	log.Printf("Running at %s\n", params.Host)
