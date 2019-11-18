@@ -18,4 +18,5 @@ COPY --from=builder /app/res /go/bin/res
 
 EXPOSE 8080
 
-ENTRYPOINT ["/go/bin/filesharing", "-config=/go/bin/config.json"]
+WORKDIR /go/bin
+ENTRYPOINT ["./filesharing", "--config=config.json"]
