@@ -23,10 +23,8 @@ const (
 
 type StorageChecker interface {
 	Name(r *http.Request) string
-	CurrentPath(r *http.Request) string
+	IsPermanent(r *http.Request) bool
 	IsPublic(name string) bool
-	Path(name string) string
-	PermanentPath(name string) string
 }
 
 type Authentificator interface {
@@ -38,23 +36,43 @@ type Authentificator interface {
 type Handlers struct {
 	sc                 StorageChecker
 	auth               Authentificator
+	rootPath           string
+	permanentDirectory string
 	temporaryDirectory string
 }
 
-func NewHandlers(checker StorageChecker, a Authentificator, tempDir string) *Handlers {
+func NewHandlers(checker StorageChecker, a Authentificator, root, pertament, temp string) *Handlers {
 	return &Handlers{
 		sc:                 checker,
 		auth:               a,
-		temporaryDirectory: tempDir,
+		rootPath:           root,
+		permanentDirectory: pertament,
+		temporaryDirectory: temp,
 	}
 }
 
-func (h *Handlers) RootHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/common/", http.StatusMovedPermanently)
+func (h *Handlers) path(name string) string {
+	return path.Join(h.rootPath, name)
+}
+
+func (h *Handlers) permanentPath(name string) string {
+	return path.Join(h.path(name), h.permanentDirectory)
+}
+
+func (h *Handlers) currentPath(r *http.Request) string {
+	if h.sc.IsPermanent(r) {
+		return h.permanentPath(h.sc.Name(r))
+	}
+
+	return h.path(h.sc.Name(r))
+}
+
+func (h *Handlers) FileServer() http.Handler {
+	return http.FileServer(http.Dir(h.rootPath))
 }
 
 func (h *Handlers) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := h.sc.CurrentPath(r)
+	sPath := h.currentPath(r)
 	indexPath := path.Join(sPath, "index.html")
 	f, err := os.Open(indexPath)
 	if err != nil {
@@ -158,7 +176,7 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := h.sc.CurrentPath(r)
+	sPath := h.currentPath(r)
 	_, err := os.Stat(sPath)
 	if respondError(err, w, http.StatusInternalServerError) {
 		return
@@ -173,7 +191,7 @@ func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) JSONViewHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := h.sc.CurrentPath(r)
+	sPath := h.currentPath(r)
 	_, err := os.Stat(sPath)
 	if respondError(err, w, http.StatusInternalServerError) {
 		return
@@ -209,7 +227,7 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	files := []string{}
-	sPath := h.sc.CurrentPath(r)
+	sPath := h.currentPath(r)
 	for {
 		part, err := mr.NextPart()
 		if err == io.EOF {
@@ -270,7 +288,7 @@ func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sPath := h.sc.CurrentPath(r)
+	sPath := h.currentPath(r)
 	fiList := fs.NewDirectory(sPath).List()
 	if !fiList.Exist(fileName) {
 		respondError(errors.New(fileName+" doesn't exist"), w, http.StatusBadRequest)
@@ -299,7 +317,7 @@ func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sPath := h.sc.CurrentPath(r)
+	sPath := h.currentPath(r)
 	title = fs.NewDirectory(sPath).UniqueName(title)
 
 	file, err := os.Create(path.Join(sPath, title))
@@ -376,13 +394,13 @@ func (h *Handlers) createSkel(storageName string, permanent bool) error {
 		return nil
 	}
 
-	err := createFolder(h.sc.Path(storageName))
+	err := createFolder(h.path(storageName))
 	if err != nil {
 		return err
 	}
 
 	if permanent {
-		err := createFolder(h.sc.PermanentPath(storageName))
+		err := createFolder(h.permanentPath(storageName))
 		if err != nil {
 			return err
 		}
@@ -392,7 +410,7 @@ func (h *Handlers) createSkel(storageName string, permanent bool) error {
 }
 
 func (h *Handlers) createIfNotExist(storageName string, permanent bool) error {
-	_, err := os.Stat(h.sc.Path(storageName))
+	_, err := os.Stat(h.path(storageName))
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = h.createSkel(storageName, permanent)

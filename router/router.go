@@ -3,7 +3,6 @@ package router
 import (
 	"log"
 	"net/http"
-	"path"
 	"strings"
 
 	"github.com/Mikhalevich/filesharing/handlers"
@@ -12,7 +11,8 @@ import (
 )
 
 const (
-	ContextStoragePath = "storagePath"
+	ContextStorageName        = "storageName"
+	ContextStorageIsPermanent = "storageIsPermanent"
 )
 
 type PublicStorages struct {
@@ -25,8 +25,9 @@ func (p *PublicStorages) Name(r *http.Request) string {
 	return mux.Vars(r)["storage"]
 }
 
-func (p *PublicStorages) CurrentPath(r *http.Request) string {
-	return context.Get(r, ContextStoragePath).(string)
+func (p *PublicStorages) IsPermanent(r *http.Request) bool {
+	_, ok := context.GetOk(r, ContextStorageIsPermanent)
+	return ok
 }
 
 func (p *PublicStorages) IsPublic(name string) bool {
@@ -34,46 +35,32 @@ func (p *PublicStorages) IsPublic(name string) bool {
 	return ok
 }
 
-func (p *PublicStorages) Path(name string) string {
-	return path.Join(p.rootPath, name)
-}
-
-func (p *PublicStorages) PermanentPath(name string) string {
-	return path.Join(p.Path(name), p.permanentPath)
-}
-
-func NewPublicStorages(root string, permanent string) *PublicStorages {
+func NewPublicStorages() *PublicStorages {
 	return &PublicStorages{
-		rootPath:      root,
-		permanentPath: permanent,
-		s:             map[string]bool{"common": true, "res": true},
+		s: map[string]bool{"common": true, "res": true},
 	}
 }
 
 type Route struct {
-	Pattern            string
-	IsPrefix           bool
-	Methods            string
-	NeedAuth           bool
-	StorePath          bool
-	StorePermanentPath bool
-	Handler            http.Handler
+	Pattern       string
+	IsPrefix      bool
+	Methods       string
+	NeedAuth      bool
+	StorePath     bool
+	PermanentPath bool
+	Handler       http.Handler
 }
 
 type Router struct {
-	rootStorage      string
-	permanentStorage string
-	enableAuth       bool
-	routes           []Route
-	h                *handlers.Handlers
+	enableAuth bool
+	routes     []Route
+	h          *handlers.Handlers
 }
 
-func NewRouter(root, permanent string, ea bool, handl *handlers.Handlers) *Router {
+func NewRouter(ea bool, handl *handlers.Handlers) *Router {
 	return &Router{
-		rootStorage:      root,
-		permanentStorage: permanent,
-		enableAuth:       ea,
-		h:                handl,
+		enableAuth: ea,
+		h:          handl,
 	}
 }
 
@@ -82,7 +69,9 @@ func (r *Router) makeRoutes() {
 		Route{
 			Pattern: "/",
 			Methods: "GET",
-			Handler: http.HandlerFunc(r.h.RootHandler),
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "/common/", http.StatusMovedPermanently)
+			}),
 		},
 		Route{
 			Pattern:  "/res/",
@@ -102,10 +91,10 @@ func (r *Router) makeRoutes() {
 			Handler:   http.HandlerFunc(r.h.LoginHandler),
 		},
 		Route{
-			Pattern:            "/api/{storage}/permanent/",
-			Methods:            "GET",
-			StorePermanentPath: true,
-			Handler:            http.HandlerFunc(r.h.JSONViewHandler),
+			Pattern:       "/api/{storage}/permanent/",
+			Methods:       "GET",
+			PermanentPath: true,
+			Handler:       http.HandlerFunc(r.h.JSONViewHandler),
 		},
 		Route{
 			Pattern:   "/api/{storage}/",
@@ -121,18 +110,18 @@ func (r *Router) makeRoutes() {
 			Handler:   http.HandlerFunc(r.h.IndexHTMLHandler),
 		},
 		Route{
-			Pattern:            "/{storage}/permanent/index.html",
-			Methods:            "GET",
-			NeedAuth:           true,
-			StorePermanentPath: true,
-			Handler:            http.HandlerFunc(r.h.IndexHTMLHandler),
+			Pattern:       "/{storage}/permanent/index.html",
+			Methods:       "GET",
+			NeedAuth:      true,
+			PermanentPath: true,
+			Handler:       http.HandlerFunc(r.h.IndexHTMLHandler),
 		},
 		Route{
-			Pattern:            "/{storage}/permanent/",
-			Methods:            "GET",
-			NeedAuth:           true,
-			StorePermanentPath: true,
-			Handler:            http.HandlerFunc(r.h.ViewHandler),
+			Pattern:       "/{storage}/permanent/",
+			Methods:       "GET",
+			NeedAuth:      true,
+			PermanentPath: true,
+			Handler:       http.HandlerFunc(r.h.ViewHandler),
 		},
 		Route{
 			Pattern:   "/{storage}/",
@@ -146,7 +135,7 @@ func (r *Router) makeRoutes() {
 			IsPrefix: true,
 			Methods:  "GET",
 			NeedAuth: true,
-			Handler:  http.FileServer(http.Dir(r.rootStorage)),
+			Handler:  r.h.FileServer(),
 		},
 		Route{
 			Pattern:   "/{storage}/upload/",
@@ -156,11 +145,11 @@ func (r *Router) makeRoutes() {
 			Handler:   http.HandlerFunc(r.h.UploadHandler),
 		},
 		Route{
-			Pattern:            "/{storage}/permanent/upload/",
-			Methods:            "POST",
-			NeedAuth:           true,
-			StorePermanentPath: true,
-			Handler:            http.HandlerFunc(r.h.UploadHandler),
+			Pattern:       "/{storage}/permanent/upload/",
+			Methods:       "POST",
+			NeedAuth:      true,
+			PermanentPath: true,
+			Handler:       http.HandlerFunc(r.h.UploadHandler),
 		},
 		Route{
 			Pattern:   "/{storage}/remove/",
@@ -170,11 +159,11 @@ func (r *Router) makeRoutes() {
 			Handler:   http.HandlerFunc(r.h.RemoveHandler),
 		},
 		Route{
-			Pattern:            "/{storage}/permanent/remove/",
-			Methods:            "POST",
-			NeedAuth:           true,
-			StorePermanentPath: true,
-			Handler:            http.HandlerFunc(r.h.RemoveHandler),
+			Pattern:       "/{storage}/permanent/remove/",
+			Methods:       "POST",
+			NeedAuth:      true,
+			PermanentPath: true,
+			Handler:       http.HandlerFunc(r.h.RemoveHandler),
 		},
 		Route{
 			Pattern:   "/{storage}/shareText/",
@@ -184,43 +173,27 @@ func (r *Router) makeRoutes() {
 			Handler:   http.HandlerFunc(r.h.ShareTextHandler),
 		},
 		Route{
-			Pattern:            "/{storage}/permanent/shareText/",
-			Methods:            "POST",
-			NeedAuth:           true,
-			StorePermanentPath: true,
-			Handler:            http.HandlerFunc(r.h.ShareTextHandler),
+			Pattern:       "/{storage}/permanent/shareText/",
+			Methods:       "POST",
+			NeedAuth:      true,
+			PermanentPath: true,
+			Handler:       http.HandlerFunc(r.h.ShareTextHandler),
 		},
 	}
 }
 
-func (r *Router) path(name string) string {
-	return path.Join(r.rootStorage, name)
-}
-
-func (r *Router) permanentPath(name string) string {
-	return path.Join(r.path(name), r.permanentStorage)
-}
-
-func (r *Router) storePath(next http.Handler) http.Handler {
+func (r *Router) storeName(isPermanent bool, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		storage := mux.Vars(request)["storage"]
 		if storage == "" {
 			log.Printf("Invalid storage request, url = %s", request.URL)
-		} else {
-			context.Set(request, ContextStoragePath, r.path(storage))
+			next.ServeHTTP(w, request)
+			return
 		}
 
-		next.ServeHTTP(w, request)
-	})
-}
-
-func (r *Router) storePermanentPath(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-		storage := mux.Vars(request)["storage"]
-		if storage == "" {
-			log.Printf("Invalid storage request, url = %s", request.URL)
-		} else {
-			context.Set(request, ContextStoragePath, r.permanentPath(storage))
+		context.Set(request, ContextStorageName, storage)
+		if isPermanent {
+			context.Set(request, ContextStorageIsPermanent, true)
 		}
 
 		next.ServeHTTP(w, request)
@@ -246,12 +219,8 @@ func (r *Router) Handler() http.Handler {
 			handler = r.h.CheckAuth(handler)
 		}
 
-		if route.StorePath || route.StorePermanentPath {
-			if route.StorePermanentPath {
-				handler = r.storePermanentPath(handler)
-			} else {
-				handler = r.storePath(handler)
-			}
+		if route.StorePath || route.PermanentPath {
+			handler = r.storeName(route.PermanentPath, handler)
 		}
 
 		handler = r.h.RecoverHandler(handler)

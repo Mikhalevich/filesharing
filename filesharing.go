@@ -117,7 +117,7 @@ func main() {
 		return
 	}
 
-	storageChecker := router.NewPublicStorages(params.RootStorage, params.PermanentDir)
+	storageChecker := router.NewPublicStorages()
 
 	var auth goauth.Authentifier
 	if params.AllowPrivate {
@@ -140,8 +140,8 @@ func main() {
 		auth = goauth.NewNullAuthentificator()
 	}
 
-	h := handlers.NewHandlers(storageChecker, auth, params.TempDir)
-	r := router.NewRouter(params.RootStorage, params.PermanentDir, params.AllowPrivate, h)
+	h := handlers.NewHandlers(storageChecker, auth, params.RootStorage, params.PermanentDir, params.TempDir)
+	r := router.NewRouter(params.AllowPrivate, h)
 
 	log.Printf("Running at %s\n", params.Host)
 
