@@ -13,7 +13,7 @@ services:
     environment:
       POSTGRES_DB: filesharing
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD:
+      POSTGRES_PASSWORD: 123456
     volumes:
     - db-data-filesharing:/var/lib/postgresql/data
 volumes:

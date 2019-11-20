@@ -123,7 +123,7 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if session != nil {
-		h.setUserCookie(w, session.Name, session.Value, session.Expires)
+		h.setUserCookie(w, userInfo.StorageName, session.Value, session.Expires)
 	} else {
 		if h.exists(userInfo.StorageName) {
 			userInfo.AddError("common", "Storage with this name already exists")
