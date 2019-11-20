@@ -111,7 +111,7 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := h.auth.RegisterByName(userInfo.Name, userInfo.Password)
+	session, err := h.auth.RegisterByName(userInfo.StorageName, userInfo.Password)
 	if err != nil {
 		if err == goauth.ErrAlreadyExists {
 			userInfo.AddError("common", "Storage with this name already exists")
@@ -122,8 +122,18 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if session != nil {
+		h.setUserCookie(w, session.Name, session.Value, session.Expires)
+	} else {
+		if h.exists(userInfo.StorageName) {
+			userInfo.AddError("common", "Storage with this name already exists")
+			return
+		}
+
+		h.createIfNotExist(userInfo.StorageName, true)
+	}
+
 	renderTemplate = false
-	h.setUserCookie(w, session.Name, session.Value, session.Expires)
 	http.Redirect(w, r, fmt.Sprintf("/%s", userInfo.StorageName), http.StatusFound)
 }
 
@@ -139,6 +149,11 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	storageName := h.sc.Name(r)
+
+	if h.sc.IsPublic(storageName) {
+		userInfo.AddError("common", fmt.Sprintf("No need to login into %s", storageName))
+		return
+	}
 
 	if r.Method != http.MethodPost {
 		return
@@ -170,8 +185,16 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if session != nil {
+		h.setUserCookie(w, storageName, session.Value, session.Expires)
+	} else {
+		if !h.exists(storageName) {
+			userInfo.AddError("common", "Invalid user name or password")
+			return
+		}
+	}
+
 	renderTemplate = false
-	h.setUserCookie(w, storageName, session.Value, session.Expires)
 	http.Redirect(w, r, fmt.Sprintf("/%s", storageName), http.StatusFound)
 }
 
@@ -409,15 +432,19 @@ func (h *Handlers) createSkel(storageName string, permanent bool) error {
 	return nil
 }
 
-func (h *Handlers) createIfNotExist(storageName string, permanent bool) error {
+func (h *Handlers) exists(storageName string) bool {
 	_, err := os.Stat(h.path(storageName))
 	if err != nil {
-		if os.IsNotExist(err) {
-			err = h.createSkel(storageName, permanent)
-		}
+		return !os.IsNotExist(err)
 	}
+	return true
+}
 
-	return err
+func (h *Handlers) createIfNotExist(storageName string, permanent bool) error {
+	if !h.exists(storageName) {
+		return h.createSkel(storageName, permanent)
+	}
+	return nil
 }
 
 func (h *Handlers) setUserCookie(w http.ResponseWriter, sessionName, sessionId string, expires int64) {
