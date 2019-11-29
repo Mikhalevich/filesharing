@@ -172,7 +172,7 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := h.auth.AuthorizeByName(userInfo.Name, userInfo.Password, r.RemoteAddr)
+	session, err := h.auth.AuthorizeByName(storageName, userInfo.Password, r.RemoteAddr)
 	if err == goauth.ErrManyRequests {
 		userInfo.AddError("common", "Request is not allowed, too many requests")
 		return
