@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -9,8 +10,12 @@ import (
 	"time"
 
 	"github.com/Mikhalevich/argparser"
-	"github.com/Mikhalevich/filesharing/db"
 	"github.com/Mikhalevich/filesharing/fs"
+	"github.com/Mikhalevich/filesharing/handlers"
+	"github.com/Mikhalevich/filesharing/router"
+	"github.com/Mikhalevich/goauth"
+	"github.com/Mikhalevich/goauth/db"
+	"github.com/Mikhalevich/goauth/email"
 )
 
 var (
@@ -83,6 +88,19 @@ func loadParams() (*Params, error) {
 	return par, nil
 }
 
+func runCleaner(cleanTime, permanentDirectory string) error {
+	t, err := time.Parse("15:04", cleanTime)
+	if err != nil {
+		return err
+	}
+
+	fs.PermanentDir = permanentDirectory
+	cleaner := fs.NewCleaner(params.RootStorage, permanentDirectory)
+	cleaner.Run(t.Hour(), t.Minute())
+
+	return nil
+}
+
 func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 
@@ -93,27 +111,41 @@ func main() {
 		return
 	}
 
-	t, err := time.Parse("15:04", params.CleanTime)
+	err = runCleaner(params.CleanTime, params.PermanentDir)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	fs.PermanentDir = params.PermanentDir
-	cleaner := fs.NewCleaner(params.RootStorage, params.PermanentDir)
-	cleaner.Run(t.Hour(), t.Minute())
+	storageChecker := router.NewPublicStorages()
 
-	// check db, create indexes, remove temporary data
-	db.UseDB = params.AllowPrivate
-	db.DBHost = params.DB.Host
-	s := db.NewStorage()
-	s.Close()
+	var auth goauth.Authentifier
+	if params.AllowPrivate {
+		time.Sleep(time.Second * 2)
+		pg, err := db.NewPostgres(params.DB.Host)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer pg.Close()
 
-	router := NewRouter(*params)
+		es := &email.GomailSender{
+			Host:     "smtp.gmail.com",
+			Port:     587,
+			From:     "",
+			Password: "",
+		}
+		auth = goauth.NewAuthentificator(pg, pg, NewCookieSession(storageChecker, 1*60*60*24*30), es)
+	} else {
+		auth = goauth.NewNullAuthentificator()
+	}
+
+	h := handlers.NewHandlers(storageChecker, auth, params.RootStorage, params.PermanentDir, params.TempDir)
+	r := router.NewRouter(params.AllowPrivate, h)
 
 	log.Printf("Running at %s\n", params.Host)
 
-	err = http.ListenAndServe(params.Host, router.handler())
+	err = http.ListenAndServe(params.Host, r.Handler())
 	if err != nil {
 		log.Println(err)
 	}
