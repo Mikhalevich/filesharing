@@ -129,10 +129,9 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 			userInfo.AddError("common", "Storage with this name already exists")
 			return
 		}
-
-		h.createIfNotExist(userInfo.StorageName, true)
 	}
 
+	h.createIfNotExist(userInfo.StorageName, true)
 	renderTemplate = false
 	http.Redirect(w, r, fmt.Sprintf("/%s", userInfo.StorageName), http.StatusFound)
 }
