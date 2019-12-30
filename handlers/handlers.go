@@ -76,6 +76,7 @@ func (h *Handlers) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 	indexPath := path.Join(sPath, "index.html")
 	f, err := os.Open(indexPath)
 	if err != nil {
+		log.Println(err)
 		http.Error(w, "Can't open index.html", http.StatusInternalServerError)
 		return
 	}
@@ -118,7 +119,8 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Println(err)
+		http.Error(w, "registration error", http.StatusInternalServerError)
 		return
 	}
 
@@ -131,7 +133,11 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h.createIfNotExist(userInfo.StorageName, true)
+	err = h.createIfNotExist(userInfo.StorageName, true)
+	if err != nil {
+		log.Println(err)
+	}
+
 	renderTemplate = false
 	http.Redirect(w, r, fmt.Sprintf("/%s", userInfo.StorageName), http.StatusFound)
 }
@@ -180,7 +186,8 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		userInfo.AddError("common", "Invalid user name or password")
 		return
 	} else if err != nil {
-		userInfo.AddError("name", err.Error())
+		log.Println(err)
+		http.Error(w, "authorization error", http.StatusInternalServerError)
 		return
 	}
 
@@ -239,6 +246,7 @@ func (h *Handlers) JSONViewHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
+		log.Println("invalid method")
 		http.Error(w, "only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -300,6 +308,7 @@ func (h *Handlers) storeTempFile(fileName string, part *multipart.Part) (string,
 
 func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
+		log.Println("invalid method")
 		http.Error(w, "only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -327,6 +336,7 @@ func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
+		log.Println("invalid method")
 		http.Error(w, "only POST method", http.StatusMethodNotAllowed)
 		return
 	}
