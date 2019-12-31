@@ -1,18 +1,20 @@
 package router
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	"github.com/Mikhalevich/filesharing/handlers"
-	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
+type contextRouterKey string
+
 const (
-	ContextStorageName        = "storageName"
-	ContextStorageIsPermanent = "storageIsPermanent"
+	contextStorageName        = contextRouterKey("storageName")
+	contextStorageIsPermanent = contextRouterKey("storageIsPermanent")
 )
 
 type PublicStorages struct {
@@ -26,8 +28,11 @@ func (p *PublicStorages) Name(r *http.Request) string {
 }
 
 func (p *PublicStorages) IsPermanent(r *http.Request) bool {
-	_, ok := context.GetOk(r, ContextStorageIsPermanent)
-	return ok
+	val := r.Context().Value(contextStorageIsPermanent)
+	if val != nil {
+		return true
+	}
+	return false
 }
 
 func (p *PublicStorages) IsPublic(name string) bool {
@@ -193,10 +198,11 @@ func (r *Router) storeName(isPermanent bool, next http.Handler) http.Handler {
 			return
 		}
 
-		context.Set(request, ContextStorageName, storage)
+		ctx := context.WithValue(request.Context(), contextStorageName, storage)
 		if isPermanent {
-			context.Set(request, ContextStorageIsPermanent, true)
+			ctx = context.WithValue(ctx, contextStorageIsPermanent, true)
 		}
+		request = request.WithContext(ctx)
 
 		next.ServeHTTP(w, request)
 	})
