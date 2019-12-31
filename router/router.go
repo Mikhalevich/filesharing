@@ -1,13 +1,13 @@
 package router
 
 import (
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/Mikhalevich/filesharing/handlers"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -55,12 +55,14 @@ type Router struct {
 	enableAuth bool
 	routes     []Route
 	h          *handlers.Handlers
+	logger     *logrus.Logger
 }
 
-func NewRouter(ea bool, handl *handlers.Handlers) *Router {
+func NewRouter(ea bool, handl *handlers.Handlers, l *logrus.Logger) *Router {
 	return &Router{
 		enableAuth: ea,
 		h:          handl,
+		logger:     l,
 	}
 }
 
@@ -186,7 +188,7 @@ func (r *Router) storeName(isPermanent bool, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		storage := mux.Vars(request)["storage"]
 		if storage == "" {
-			log.Printf("Invalid storage request, url = %s", request.URL)
+			r.logger.Errorf("Invalid storage request, url = %s", request.URL)
 			next.ServeHTTP(w, request)
 			return
 		}
