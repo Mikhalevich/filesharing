@@ -2,12 +2,12 @@ package main
 
 import (
 	"errors"
-	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/Mikhalevich/argparser"
 	"github.com/Mikhalevich/filesharing/fs"
@@ -102,18 +102,22 @@ func runCleaner(cleanTime, permanentDirectory string) error {
 }
 
 func main() {
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
+	logger := logrus.New()
+	logger.SetOutput(os.Stdout)
+	logger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
 
 	var err error
 	params, err = loadParams()
 	if err != nil {
-		log.Println(err)
+		logger.Error(err)
 		return
 	}
 
 	err = runCleaner(params.CleanTime, params.PermanentDir)
 	if err != nil {
-		log.Println(err)
+		logger.Error(err)
 		return
 	}
 
@@ -124,7 +128,7 @@ func main() {
 		time.Sleep(time.Second * 2)
 		pg, err := db.NewPostgres(params.DB.Host)
 		if err != nil {
-			fmt.Println(err)
+			logger.Error(err)
 			return
 		}
 		defer pg.Close()
@@ -140,13 +144,13 @@ func main() {
 		auth = goauth.NewNullAuthentificator()
 	}
 
-	h := handlers.NewHandlers(storageChecker, auth, params.RootStorage, params.PermanentDir, params.TempDir)
+	h := handlers.NewHandlers(storageChecker, auth, logger, params.RootStorage, params.PermanentDir, params.TempDir)
 	r := router.NewRouter(params.AllowPrivate, h)
 
-	log.Printf("Running at %s\n", params.Host)
+	logger.Infof("Running at %s", params.Host)
 
 	err = http.ListenAndServe(params.Host, r.Handler())
 	if err != nil {
-		log.Println(err)
+		logger.Error(err)
 	}
 }
