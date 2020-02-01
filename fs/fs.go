@@ -1,15 +1,11 @@
 package fs
 
 import (
+	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
+	"io"
 	"os"
 	"path"
-	"path/filepath"
-	"sort"
-	"strings"
-	"time"
 )
 
 type ByteSize float64
@@ -28,6 +24,8 @@ const (
 
 var (
 	PermanentDir string
+
+	ErrNotExists = errors.New("Not exists")
 )
 
 func (b ByteSize) String() string {
@@ -94,133 +92,43 @@ func (fil FileInfoList) Exist(name string) bool {
 	return false
 }
 
-type Directory struct {
-	Path string
+type FileStorage struct {
 }
 
-func NewDirectory(path string) *Directory {
-	return &Directory{
-		Path: path,
-	}
+func NewFileStorage() *FileStorage {
+	return &FileStorage{}
 }
 
-func (d *Directory) List() FileInfoList {
-	osFiList, err := ioutil.ReadDir(d.Path)
+func (fs *FileStorage) Files(path string) FileInfoList {
+	return newDirectory(path).List()
+}
+
+func (fs *FileStorage) Store(dir string, fileName string, data io.Reader) (string, error) {
+	uniqueName := newDirectory(dir).UniqueName(fileName)
+	f, err := os.Create(path.Join(dir, uniqueName))
 	if err != nil {
-		log.Println(err)
-		return FileInfoList{}
+		return "", err
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, data)
+	if err != nil {
+		return "", err
 	}
 
-	fiList := make(FileInfoList, 0, len(osFiList))
-
-	for _, osFi := range osFiList {
-		fiList = append(fiList, FileInfo{osFi})
-	}
-
-	sort.Sort(fiList)
-
-	return fiList
+	return uniqueName, nil
 }
 
-func (d *Directory) UniqueName(fileName string) string {
-	ld := d.List()
-	if !ld.Exist(fileName) {
-		return fileName
-	}
-
-	ext := filepath.Ext(fileName)
-
-	nameTemplate := fmt.Sprintf("%s%s%s", strings.TrimSuffix(fileName, ext), "_%d", ext)
-
-	for count := 1; ; count++ {
-		fileName = fmt.Sprintf(nameTemplate, count)
-		if !ld.Exist(fileName) {
-			break
-		}
-	}
-
-	return fileName
+func (fs *FileStorage) Move(filePath string, dir string, fileName string) error {
+	uniqueName := newDirectory(dir).UniqueName(fileName)
+	return os.Rename(filePath, path.Join(dir, uniqueName))
 }
 
-type Cleaner struct {
-	Path         string
-	ProtectedDir string
-	finish       chan bool
-}
-
-func NewCleaner(path string, protectedDirPath string) *Cleaner {
-	path, _ = filepath.Abs(path)
-
-	return &Cleaner{
-		Path:         path,
-		ProtectedDir: protectedDirPath,
-		finish:       make(chan bool),
-	}
-}
-
-func (c *Cleaner) Run(hour int, minute int) {
-	now := time.Now()
-	cleanTime := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, now.Second(), now.Nanosecond(), now.Location())
-	go c.clean(cleanTime)
-}
-
-func (c *Cleaner) Stop() {
-	c.finish <- true
-}
-
-func (c *Cleaner) clean(t time.Time) {
-	tick := func() <-chan time.Time {
-		now := time.Now()
-
-		for t.Before(now) {
-			t = t.Add(time.Hour * 24)
-		}
-
-		return time.After(t.Sub(now))
+func (fs *FileStorage) Remove(dir string, fileName string) error {
+	files := newDirectory(dir).List()
+	if !files.Exist(fileName) {
+		return ErrNotExists
 	}
 
-	for {
-		var now time.Time
-		select {
-		case now = <-tick():
-		case <-c.finish:
-			log.Printf("Clean for %s is done\n", c.Path)
-			return
-		}
-
-		log.Printf("time for cleaning: %v", now)
-
-		storages, err := ioutil.ReadDir(c.Path)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		for _, storage := range storages {
-			if !storage.IsDir() {
-				continue
-			}
-
-			sPath := path.Join(c.Path, storage.Name())
-
-			log.Printf("cleaning dir: %q\n", sPath)
-
-			files, err := ioutil.ReadDir(sPath)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
-			for _, file := range files {
-				if file.IsDir() && file.Name() == c.ProtectedDir {
-					continue
-				}
-
-				err = os.Remove(path.Join(sPath, file.Name()))
-				if err != nil {
-					log.Println(err)
-				}
-			}
-		}
-	}
+	return os.Remove(path.Join(dir, fileName))
 }

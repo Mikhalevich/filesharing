@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/Mikhalevich/filesharing/fs"
@@ -36,16 +36,18 @@ type Authentificator interface {
 type Handlers struct {
 	sc                 StorageChecker
 	auth               Authentificator
+	fs                 *fs.FileStorage
 	logger             *logrus.Logger
 	rootPath           string
 	permanentDirectory string
 	temporaryDirectory string
 }
 
-func NewHandlers(checker StorageChecker, a Authentificator, l *logrus.Logger, root, pertament, temp string) *Handlers {
+func NewHandlers(checker StorageChecker, a Authentificator, fs *fs.FileStorage, l *logrus.Logger, root, pertament, temp string) *Handlers {
 	return &Handlers{
 		sc:                 checker,
 		auth:               a,
+		fs:                 fs,
 		logger:             l,
 		rootPath:           root,
 		permanentDirectory: pertament,
@@ -217,7 +219,7 @@ func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	viewTemplate := templates.NewTemplateView(Title, fs.NewDirectory(sPath).List())
+	viewTemplate := templates.NewTemplateView(Title, h.fs.Files(sPath))
 
 	err = viewTemplate.Execute(w)
 	if err != nil {
@@ -232,7 +234,7 @@ func (h *Handlers) JSONViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	list := fs.NewDirectory(sPath).List()
+	list := h.fs.Files(sPath)
 
 	type JSONInfo struct {
 		Name string `json:"name"`
@@ -269,7 +271,6 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	files := []string{}
 	sPath := h.currentPath(r)
 	for {
 		part, err := mr.NextPart()
@@ -286,37 +287,18 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		fn, err := h.storeTempFile(fileName, part)
+		tempFileName, err := h.fs.Store(h.temporaryDirectory, fileName, part)
 		if h.respondWithError(err, w, "unable to create file", http.StatusInternalServerError) {
 			return
 		}
-		files = append(files, fn)
-	}
 
-	for _, fi := range files {
-		fn := fs.NewDirectory(sPath).UniqueName(fi)
-		err = os.Rename(path.Join(h.temporaryDirectory, fi), path.Join(sPath, fn))
+		err = h.fs.Move(path.Join(h.temporaryDirectory, tempFileName), sPath, fileName)
 		if err != nil {
 			h.logger.Error(err)
 		}
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
-
-func (h *Handlers) storeTempFile(fileName string, part *multipart.Part) (string, error) {
-	fileName = fs.NewDirectory(h.temporaryDirectory).UniqueName(fileName)
-	f, err := os.Create(path.Join(h.temporaryDirectory, fileName))
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	if _, err = io.Copy(f, part); err != nil {
-		return "", err
-	}
-
-	return fileName, nil
 }
 
 func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
@@ -331,13 +313,12 @@ func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sPath := h.currentPath(r)
-	fiList := fs.NewDirectory(sPath).List()
-	if !fiList.Exist(fileName) {
+	err := h.fs.Remove(sPath, fileName)
+	if err == fs.ErrNotExists {
 		h.respondWithError(errors.New(fileName+" doesn't exist"), w, "file name doesn't exist", http.StatusBadRequest)
 		return
 	}
 
-	err := os.Remove(path.Join(sPath, fileName))
 	if h.respondWithError(err, w, "unable to remove file", http.StatusInternalServerError) {
 		return
 	}
@@ -360,15 +341,7 @@ func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sPath := h.currentPath(r)
-	title = fs.NewDirectory(sPath).UniqueName(title)
-
-	file, err := os.Create(path.Join(sPath, title))
-	if h.respondWithError(err, w, "unable to create text file", http.StatusInternalServerError) {
-		return
-	}
-	defer file.Close()
-
-	_, err = file.WriteString(body)
+	_, err := h.fs.Store(sPath, title, strings.NewReader(body))
 	if h.respondWithError(err, w, "unable to store text file", http.StatusInternalServerError) {
 		return
 	}

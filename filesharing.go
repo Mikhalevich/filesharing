@@ -138,7 +138,7 @@ func main() {
 		auth = goauth.NewNullAuthentificator()
 	}
 
-	h := handlers.NewHandlers(storageChecker, auth, logger, params.RootStorage, params.PermanentDir, params.TempDir)
+	h := handlers.NewHandlers(storageChecker, auth, fs.NewFileStorage(), logger, params.RootStorage, params.PermanentDir, params.TempDir)
 	r := router.NewRouter(params.AllowPrivate, h, logger)
 
 	logger.Infof("Running at %s", params.Host)
