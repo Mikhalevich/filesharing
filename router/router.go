@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Mikhalevich/filesharing/handlers"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
@@ -56,14 +55,28 @@ type Route struct {
 	Handler       http.Handler
 }
 
+type handler interface {
+	RegisterHandler(w http.ResponseWriter, r *http.Request)
+	LoginHandler(w http.ResponseWriter, r *http.Request)
+	JSONViewHandler(w http.ResponseWriter, r *http.Request)
+	IndexHTMLHandler(w http.ResponseWriter, r *http.Request)
+	ViewHandler(w http.ResponseWriter, r *http.Request)
+	UploadHandler(w http.ResponseWriter, r *http.Request)
+	RemoveHandler(w http.ResponseWriter, r *http.Request)
+	ShareTextHandler(w http.ResponseWriter, r *http.Request)
+	FileServer() http.Handler
+	CheckAuth(next http.Handler) http.Handler
+	RecoverHandler(next http.Handler) http.Handler
+}
+
 type Router struct {
 	enableAuth bool
 	routes     []Route
-	h          *handlers.Handlers
+	h          handler
 	logger     *logrus.Logger
 }
 
-func NewRouter(ea bool, handl *handlers.Handlers, l *logrus.Logger) *Router {
+func NewRouter(ea bool, handl handler, l *logrus.Logger) *Router {
 	return &Router{
 		enableAuth: ea,
 		h:          handl,
