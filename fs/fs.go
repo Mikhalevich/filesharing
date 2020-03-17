@@ -93,19 +93,43 @@ func (fil FileInfoList) Exist(name string) bool {
 }
 
 type FileStorage struct {
+	rootPath string
 }
 
-func NewFileStorage() *FileStorage {
-	return &FileStorage{}
+func NewFileStorage(root string) *FileStorage {
+	return &FileStorage{
+		rootPath: root,
+	}
 }
 
-func (fs *FileStorage) Files(path string) FileInfoList {
-	return newDirectory(path).List()
+func (fs *FileStorage) Root() string {
+	return fs.rootPath
+}
+
+func (fs *FileStorage) Join(p string) string {
+	return path.Join(fs.rootPath, p)
+}
+
+func (fs *FileStorage) IsExists(p string) bool {
+	_, err := os.Stat(p)
+	if err != nil {
+		return !os.IsNotExist(err)
+	}
+	return true
+}
+
+func (fs *FileStorage) Mkdir(dir string) error {
+	return os.Mkdir(fs.Join(dir), os.ModePerm)
+}
+
+func (fs *FileStorage) Files(p string) FileInfoList {
+	return newDirectory(fs.Join(p)).List()
 }
 
 func (fs *FileStorage) Store(dir string, fileName string, data io.Reader) (string, error) {
-	uniqueName := newDirectory(dir).UniqueName(fileName)
-	f, err := os.Create(path.Join(dir, uniqueName))
+	dirPath := fs.Join(dir)
+	uniqueName := newDirectory(dirPath).UniqueName(fileName)
+	f, err := os.Create(path.Join(dirPath, uniqueName))
 	if err != nil {
 		return "", err
 	}
@@ -120,15 +144,17 @@ func (fs *FileStorage) Store(dir string, fileName string, data io.Reader) (strin
 }
 
 func (fs *FileStorage) Move(filePath string, dir string, fileName string) error {
-	uniqueName := newDirectory(dir).UniqueName(fileName)
-	return os.Rename(filePath, path.Join(dir, uniqueName))
+	dirPath := fs.Join(dir)
+	uniqueName := newDirectory(dirPath).UniqueName(fileName)
+	return os.Rename(filePath, path.Join(dirPath, uniqueName))
 }
 
 func (fs *FileStorage) Remove(dir string, fileName string) error {
-	files := newDirectory(dir).List()
+	dirPath := fs.Join(dir)
+	files := newDirectory(dirPath).List()
 	if !files.Exist(fileName) {
 		return ErrNotExists
 	}
 
-	return os.Remove(path.Join(dir, fileName))
+	return os.Remove(path.Join(dirPath, fileName))
 }

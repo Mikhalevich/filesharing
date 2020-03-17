@@ -37,26 +37,24 @@ type Handlers struct {
 	sc                 StorageChecker
 	auth               Authentificator
 	fs                 *fs.FileStorage
+	tempFS             *fs.FileStorage
 	logger             *logrus.Logger
-	rootPath           string
 	permanentDirectory string
-	temporaryDirectory string
 }
 
-func NewHandlers(checker StorageChecker, a Authentificator, fs *fs.FileStorage, l *logrus.Logger, root, pertament, temp string) *Handlers {
+func NewHandlers(checker StorageChecker, a Authentificator, fs, tempFS *fs.FileStorage, l *logrus.Logger, pertament string) *Handlers {
 	return &Handlers{
 		sc:                 checker,
 		auth:               a,
 		fs:                 fs,
+		tempFS:             tempFS,
 		logger:             l,
-		rootPath:           root,
 		permanentDirectory: pertament,
-		temporaryDirectory: temp,
 	}
 }
 
 func (h *Handlers) path(name string) string {
-	return path.Join(h.rootPath, name)
+	return name
 }
 
 func (h *Handlers) permanentPath(name string) string {
@@ -67,12 +65,11 @@ func (h *Handlers) currentPath(r *http.Request) string {
 	if h.sc.IsPermanent(r) {
 		return h.permanentPath(h.sc.Name(r))
 	}
-
 	return h.path(h.sc.Name(r))
 }
 
 func (h *Handlers) FileServer() http.Handler {
-	return http.FileServer(http.Dir(h.rootPath))
+	return http.FileServer(http.Dir(h.fs.Root()))
 }
 
 func (h *Handlers) respondWithError(err error, w http.ResponseWriter, description string, httpStatusCode int) bool {
@@ -87,7 +84,7 @@ func (h *Handlers) respondWithError(err error, w http.ResponseWriter, descriptio
 
 func (h *Handlers) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 	sPath := h.currentPath(r)
-	indexPath := path.Join(sPath, "index.html")
+	indexPath := h.fs.Join(path.Join(sPath, "index.html"))
 	f, err := os.Open(indexPath)
 	if h.respondWithError(err, w, "can't open index.html", http.StatusInternalServerError) {
 		return
@@ -137,7 +134,7 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if session != nil {
 		h.setUserCookie(w, userInfo.StorageName, session.Value, session.Expires)
 	} else {
-		if h.exists(userInfo.StorageName) {
+		if h.fs.IsExists(userInfo.StorageName) {
 			userInfo.AddError("common", "Storage with this name already exists")
 			return
 		}
@@ -202,7 +199,7 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if session != nil {
 		h.setUserCookie(w, storageName, session.Value, session.Expires)
 	} else {
-		if !h.exists(storageName) {
+		if !h.fs.IsExists(storageName) {
 			userInfo.AddError("common", "Invalid user name or password")
 			return
 		}
@@ -212,16 +209,20 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/%s", storageName), http.StatusFound)
 }
 
+func fileNotExistError(file string) error {
+	return fmt.Errorf("file %s not exists", file)
+}
+
 func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	sPath := h.currentPath(r)
-	_, err := os.Stat(sPath)
-	if h.respondWithError(err, w, "invalid storage", http.StatusInternalServerError) {
+	if !h.fs.IsExists(sPath) {
+		h.respondWithError(fileNotExistError(sPath), w, "invalid storage", http.StatusInternalServerError)
 		return
 	}
 
 	viewTemplate := templates.NewTemplateView(Title, h.fs.Files(sPath))
 
-	err = viewTemplate.Execute(w)
+	err := viewTemplate.Execute(w)
 	if err != nil {
 		h.logger.Error(err)
 	}
@@ -229,8 +230,8 @@ func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) JSONViewHandler(w http.ResponseWriter, r *http.Request) {
 	sPath := h.currentPath(r)
-	_, err := os.Stat(sPath)
-	if h.respondWithError(err, w, "invalid storage", http.StatusInternalServerError) {
+	if !h.fs.IsExists(sPath) {
+		h.respondWithError(fileNotExistError(sPath), w, "invalid storage", http.StatusInternalServerError)
 		return
 	}
 
@@ -246,7 +247,7 @@ func (h *Handlers) JSONViewHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
-	err = enc.Encode(info)
+	err := enc.Encode(info)
 	if err != nil {
 		h.logger.Error(err)
 	}
@@ -287,12 +288,12 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		tempFileName, err := h.fs.Store(h.temporaryDirectory, fileName, part)
+		tempFileName, err := h.tempFS.Store("", fileName, part)
 		if h.respondWithError(err, w, "unable to create file", http.StatusInternalServerError) {
 			return
 		}
 
-		err = h.fs.Move(path.Join(h.temporaryDirectory, tempFileName), sPath, fileName)
+		err = h.fs.Move(h.tempFS.Join(tempFileName), sPath, fileName)
 		if err != nil {
 			h.logger.Error(err)
 		}
@@ -315,7 +316,7 @@ func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	sPath := h.currentPath(r)
 	err := h.fs.Remove(sPath, fileName)
 	if err == fs.ErrNotExists {
-		h.respondWithError(errors.New(fileName+" doesn't exist"), w, "file name doesn't exist", http.StatusBadRequest)
+		h.respondWithError(fileNotExistError(fileName), w, "file name doesn't exist", http.StatusBadRequest)
 		return
 	}
 
@@ -398,7 +399,7 @@ func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 
 func (h *Handlers) createSkel(storageName string, permanent bool) error {
 	createFolder := func(path string) error {
-		err := os.Mkdir(path, os.ModePerm)
+		err := h.fs.Mkdir(path)
 		if err != nil {
 			return err
 		}
@@ -421,16 +422,8 @@ func (h *Handlers) createSkel(storageName string, permanent bool) error {
 	return nil
 }
 
-func (h *Handlers) exists(storageName string) bool {
-	_, err := os.Stat(h.path(storageName))
-	if err != nil {
-		return !os.IsNotExist(err)
-	}
-	return true
-}
-
 func (h *Handlers) createIfNotExist(storageName string, permanent bool) error {
-	if !h.exists(storageName) {
+	if !h.fs.IsExists(storageName) {
 		return h.createSkel(storageName, permanent)
 	}
 	return nil
