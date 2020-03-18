@@ -111,7 +111,7 @@ func (fs *FileStorage) Join(p string) string {
 }
 
 func (fs *FileStorage) IsExists(p string) bool {
-	_, err := os.Stat(p)
+	_, err := os.Stat(fs.Join(p))
 	if err != nil {
 		return !os.IsNotExist(err)
 	}
