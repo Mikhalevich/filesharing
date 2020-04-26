@@ -153,7 +153,7 @@ func (r *Router) makeRoutes() {
 		Route{
 			Pattern:  "/{storage}/",
 			IsPrefix: true,
-			Methods:  "GET",
+			Methods:  "GET,HEAD",
 			NeedAuth: true,
 			Handler:  r.h.FileServer(),
 		},
