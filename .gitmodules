@@ -1,0 +1,3 @@
+[submodule "file_service"]
+	path = file_service
+	url = git@github.com:Mikhalevich/file_service.git
