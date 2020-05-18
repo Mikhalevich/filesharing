@@ -4,17 +4,17 @@ import (
 	"errors"
 	"net/http"
 	"os"
-	"path"
 	"time"
 
 	"github.com/Mikhalevich/argparser"
-	"github.com/Mikhalevich/filesharing/fs"
+	"github.com/Mikhalevich/file_service/proto"
 	"github.com/Mikhalevich/filesharing/handlers"
 	"github.com/Mikhalevich/filesharing/router"
 	"github.com/Mikhalevich/goauth"
 	"github.com/Mikhalevich/goauth/db"
 	"github.com/Mikhalevich/goauth/email"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 )
 
 type dbParams struct {
@@ -23,11 +23,7 @@ type dbParams struct {
 
 type params struct {
 	Host         string   `json:"host,omitempty"`
-	CleanTime    string   `json:"time,omitempty"`
 	Title        string   `json:"title,omitempty"`
-	RootStorage  string   `json:"storage,omitempty"`
-	PermanentDir string   `json:"permanent_dir,omitempty"`
-	TempDir      string   `json:"temp_dir,omitempty"`
 	AllowPrivate bool     `json:"allow_private,omitempty"`
 	DB           dbParams `json:"db,omitempty"`
 }
@@ -35,10 +31,6 @@ type params struct {
 func newParams() *params {
 	return &params{
 		Host:         "",
-		CleanTime:    "23:59",
-		RootStorage:  "storage",
-		PermanentDir: "permanent",
-		TempDir:      path.Join(os.TempDir(), "Duplo"),
 		AllowPrivate: true,
 	}
 }
@@ -71,29 +63,7 @@ func loadParams() (*params, error) {
 		par.DB.Host = "localhost"
 	}
 
-	err = os.MkdirAll(par.RootStorage, os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
-	err = os.MkdirAll(par.TempDir, os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
-
 	return par, nil
-}
-
-func runCleaner(cleanTime, rootPath, permanentDirectory string) error {
-	t, err := time.Parse("15:04", cleanTime)
-	if err != nil {
-		return err
-	}
-
-	fs.PermanentDir = permanentDirectory
-	cleaner := fs.NewCleaner(rootPath, permanentDirectory)
-	cleaner.Run(t.Hour(), t.Minute())
-
-	return nil
 }
 
 func main() {
@@ -104,12 +74,6 @@ func main() {
 	})
 
 	params, err := loadParams()
-	if err != nil {
-		logger.Error(err)
-		return
-	}
-
-	err = runCleaner(params.CleanTime, params.RootStorage, params.PermanentDir)
 	if err != nil {
 		logger.Error(err)
 		return
@@ -138,7 +102,15 @@ func main() {
 		auth = goauth.NewNullAuthentificator()
 	}
 
-	h := handlers.NewHandlers(storageChecker, auth, fs.NewFileStorage(params.RootStorage), fs.NewFileStorage(params.TempDir), logger, params.PermanentDir)
+	fsConnection, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
+	if err != nil {
+		logger.Errorf("did not connect: %v", err)
+		return
+	}
+	defer fsConnection.Close()
+	fsClient := proto.NewFileServiceClient(fsConnection)
+
+	h := handlers.NewHandlers(storageChecker, auth, NewGRPCFileServiceClient(fsClient), logger)
 	r := router.NewRouter(params.AllowPrivate, h, logger)
 
 	logger.Infof("Running at %s", params.Host)

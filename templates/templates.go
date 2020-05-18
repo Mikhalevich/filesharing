@@ -7,8 +7,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-
-	"github.com/Mikhalevich/filesharing/fs"
 )
 
 func templatePath(name string) string {
@@ -79,13 +77,20 @@ func (t *TemplateRegister) Execute(wr io.Writer) error {
 	return t.TemplateBase.ExecuteTemplate(wr, *t)
 }
 
+// FileInfo represents one file info for templating
+type FileInfo struct {
+	Name    string
+	Size    int64
+	ModTime int64
+}
+
 type TemplateView struct {
 	TemplateBase
 	Title        string
-	FileInfoList []fs.FileInfo
+	FileInfoList []FileInfo
 }
 
-func NewTemplateView(title string, list []fs.FileInfo) *TemplateView {
+func NewTemplateView(title string, list []FileInfo) *TemplateView {
 	return &TemplateView{
 		TemplateBase: *NewTemplateBase("view.html"),
 		Title:        title,

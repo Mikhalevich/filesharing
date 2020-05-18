@@ -34,6 +34,10 @@ func (p *PublicStorages) IsPermanent(r *http.Request) bool {
 	return false
 }
 
+func (p *PublicStorages) FileName(r *http.Request) string {
+	return mux.Vars(r)["file"]
+}
+
 func (p *PublicStorages) IsPublic(name string) bool {
 	_, ok := p.s[name]
 	return ok
@@ -63,8 +67,8 @@ type handler interface {
 	ViewHandler(w http.ResponseWriter, r *http.Request)
 	UploadHandler(w http.ResponseWriter, r *http.Request)
 	RemoveHandler(w http.ResponseWriter, r *http.Request)
+	GetFileHandler(w http.ResponseWriter, r *http.Request)
 	ShareTextHandler(w http.ResponseWriter, r *http.Request)
-	FileServer() http.Handler
 	CheckAuth(next http.Handler) http.Handler
 	RecoverHandler(next http.Handler) http.Handler
 }
@@ -111,6 +115,18 @@ func (r *Router) makeRoutes() {
 			Handler:   http.HandlerFunc(r.h.LoginHandler),
 		},
 		Route{
+			Pattern:       "/api/{storage}/permanent/{file}/",
+			Methods:       "GET",
+			PermanentPath: true,
+			Handler:       http.HandlerFunc(r.h.GetFileHandler),
+		},
+		Route{
+			Pattern:   "/api/{storage}/{file}/",
+			Methods:   "GET",
+			StorePath: true,
+			Handler:   http.HandlerFunc(r.h.GetFileHandler),
+		},
+		Route{
 			Pattern:       "/api/{storage}/permanent/",
 			Methods:       "GET",
 			PermanentPath: true,
@@ -137,6 +153,20 @@ func (r *Router) makeRoutes() {
 			Handler:       http.HandlerFunc(r.h.IndexHTMLHandler),
 		},
 		Route{
+			Pattern:       "/{storage}/permanent/{file}/",
+			Methods:       "GET",
+			NeedAuth:      true,
+			PermanentPath: true,
+			Handler:       http.HandlerFunc(r.h.GetFileHandler),
+		},
+		Route{
+			Pattern:   "/{storage}/{file}/",
+			Methods:   "GET",
+			NeedAuth:  true,
+			StorePath: true,
+			Handler:   http.HandlerFunc(r.h.GetFileHandler),
+		},
+		Route{
 			Pattern:       "/{storage}/permanent/",
 			Methods:       "GET",
 			NeedAuth:      true,
@@ -149,13 +179,6 @@ func (r *Router) makeRoutes() {
 			NeedAuth:  true,
 			StorePath: true,
 			Handler:   http.HandlerFunc(r.h.ViewHandler),
-		},
-		Route{
-			Pattern:  "/{storage}/",
-			IsPrefix: true,
-			Methods:  "GET,HEAD",
-			NeedAuth: true,
-			Handler:  r.h.FileServer(),
 		},
 		Route{
 			Pattern:   "/{storage}/upload/",

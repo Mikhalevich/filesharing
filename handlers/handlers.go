@@ -6,12 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path"
 	"strings"
 	"time"
 
-	"github.com/Mikhalevich/filesharing/fs"
 	"github.com/Mikhalevich/filesharing/templates"
 	"github.com/Mikhalevich/goauth"
 	"github.com/sirupsen/logrus"
@@ -21,9 +18,22 @@ const (
 	Title = "Duplo"
 )
 
+var (
+	// ErrAlreadyExist indicates that storage already exists
+	ErrAlreadyExist = errors.New("alredy exist")
+)
+
+// File represents one file from storage
+type File struct {
+	Name    string
+	Size    int64
+	ModTime int64
+}
+
 type StorageChecker interface {
 	Name(r *http.Request) string
 	IsPermanent(r *http.Request) bool
+	FileName(r *http.Request) string
 	IsPublic(name string) bool
 }
 
@@ -33,43 +43,29 @@ type Authentificator interface {
 	RegisterByName(name, password string) (*goauth.Session, error)
 }
 
+type Storager interface {
+	Files(storage string, isPermanent bool) ([]*File, error)
+	CreateStorage(storage string, withPermanent bool) error
+	Remove(storage string, isPermanent bool, fileName string) error
+	Get(storage string, isPermanent bool, fileName string, w io.Writer) error
+	Upload(storage string, isPermanent bool, fileName string, r io.Reader) (*File, error)
+	IsStorageExists(storage string) bool
+}
+
 type Handlers struct {
-	sc                 StorageChecker
-	auth               Authentificator
-	fs                 *fs.FileStorage
-	tempFS             *fs.FileStorage
-	logger             *logrus.Logger
-	permanentDirectory string
+	sc      StorageChecker
+	auth    Authentificator
+	storage Storager
+	logger  *logrus.Logger
 }
 
-func NewHandlers(checker StorageChecker, a Authentificator, fs, tempFS *fs.FileStorage, l *logrus.Logger, pertament string) *Handlers {
+func NewHandlers(checker StorageChecker, a Authentificator, s Storager, l *logrus.Logger) *Handlers {
 	return &Handlers{
-		sc:                 checker,
-		auth:               a,
-		fs:                 fs,
-		tempFS:             tempFS,
-		logger:             l,
-		permanentDirectory: pertament,
+		sc:      checker,
+		auth:    a,
+		storage: s,
+		logger:  l,
 	}
-}
-
-func (h *Handlers) path(name string) string {
-	return name
-}
-
-func (h *Handlers) permanentPath(name string) string {
-	return path.Join(h.path(name), h.permanentDirectory)
-}
-
-func (h *Handlers) currentPath(r *http.Request) string {
-	if h.sc.IsPermanent(r) {
-		return h.permanentPath(h.sc.Name(r))
-	}
-	return h.path(h.sc.Name(r))
-}
-
-func (h *Handlers) FileServer() http.Handler {
-	return http.FileServer(http.Dir(h.fs.Root()))
 }
 
 func (h *Handlers) respondWithError(err error, w http.ResponseWriter, description string, httpStatusCode int) bool {
@@ -82,16 +78,36 @@ func (h *Handlers) respondWithError(err error, w http.ResponseWriter, descriptio
 	return false
 }
 
+// IndexHTMLHandler process index.html file
 func (h *Handlers) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := h.currentPath(r)
-	indexPath := h.fs.Join(path.Join(sPath, "index.html"))
-	f, err := os.Open(indexPath)
+	pr, pw := io.Pipe()
+	go func() {
+		err := h.storage.Get(h.sc.Name(r), h.sc.IsPermanent(r), "index.html", pw)
+		pw.CloseWithError(err)
+	}()
+
+	w.Header().Set("Content-type", "text/html")
+	_, err := io.Copy(w, pr)
 	if h.respondWithError(err, w, "can't open index.html", http.StatusInternalServerError) {
 		return
 	}
-	http.ServeContent(w, r, indexPath, time.Now(), f)
 }
 
+// GetFileHandler get single file from storage
+func (h *Handlers) GetFileHandler(w http.ResponseWriter, r *http.Request) {
+	pr, pw := io.Pipe()
+	go func() {
+		err := h.storage.Get(h.sc.Name(r), h.sc.IsPermanent(r), h.sc.FileName(r), pw)
+		pw.CloseWithError(err)
+	}()
+
+	_, err := io.Copy(w, pr)
+	if h.respondWithError(err, w, "can't open file", http.StatusInternalServerError) {
+		return
+	}
+}
+
+// RegisterHandler register a new storage(user)
 func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	userInfo := templates.NewTemplateRegister()
 	renderTemplate := true
@@ -131,17 +147,20 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	checkForAlreadyExistError := false
 	if session != nil {
 		h.setUserCookie(w, userInfo.StorageName, session.Value, session.Expires)
 	} else {
-		if h.fs.IsExists(userInfo.StorageName) {
+		checkForAlreadyExistError = true
+	}
+
+	err = h.storage.CreateStorage(userInfo.StorageName, true)
+	if errors.Is(err, ErrAlreadyExist) {
+		if checkForAlreadyExistError {
 			userInfo.AddError("common", "Storage with this name already exists")
 			return
 		}
-	}
-
-	err = h.createIfNotExist(userInfo.StorageName, true)
-	if h.respondWithError(err, w, "unable to create storage", http.StatusInternalServerError) {
+	} else if h.respondWithError(err, w, "unable to create storage", http.StatusInternalServerError) {
 		return
 	}
 
@@ -149,6 +168,7 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/%s", userInfo.StorageName), http.StatusFound)
 }
 
+// LoginHandler sign in for the existing storage(user)
 func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	userInfo := templates.NewTemplatePassword()
 	renderTemplate := true
@@ -199,7 +219,7 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if session != nil {
 		h.setUserCookie(w, storageName, session.Value, session.Expires)
 	} else {
-		if !h.fs.IsExists(storageName) {
+		if !h.storage.IsStorageExists(storageName) {
 			userInfo.AddError("common", "Invalid user name or password")
 			return
 		}
@@ -209,45 +229,57 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/%s", storageName), http.StatusFound)
 }
 
-func fileNotExistError(file string) error {
-	return fmt.Errorf("file %s not exists", file)
+func marshalFileInfo(file *File) *templates.FileInfo {
+	return &templates.FileInfo{
+		Name:    file.Name,
+		Size:    file.Size,
+		ModTime: file.ModTime,
+	}
 }
 
+// ViewHandler executes view.html template for view files in requested folder
 func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := h.currentPath(r)
-	if !h.fs.IsExists(sPath) {
-		h.respondWithError(fileNotExistError(sPath), w, "invalid storage", http.StatusInternalServerError)
+	// if !h.fs.IsExists(sPath) {
+	// 	h.respondWithError(fileNotExistError(sPath), w, "invalid storage", http.StatusInternalServerError)
+	// 	return
+	// }
+
+	files, err := h.storage.Files(h.sc.Name(r), h.sc.IsPermanent(r))
+	if h.respondWithError(err, w, "invalid storage", http.StatusInternalServerError) {
 		return
 	}
 
-	viewTemplate := templates.NewTemplateView(Title, h.fs.Files(sPath))
+	fileInfos := make([]templates.FileInfo, 0, len(files))
+	for _, f := range files {
+		fileInfos = append(fileInfos, *marshalFileInfo(f))
+	}
 
-	err := viewTemplate.Execute(w)
+	viewTemplate := templates.NewTemplateView(Title, fileInfos)
+
+	err = viewTemplate.Execute(w)
 	if err != nil {
 		h.logger.Error(err)
 	}
 }
 
+// JSONViewHandler it's spike for duplo client
 func (h *Handlers) JSONViewHandler(w http.ResponseWriter, r *http.Request) {
-	sPath := h.currentPath(r)
-	if !h.fs.IsExists(sPath) {
-		h.respondWithError(fileNotExistError(sPath), w, "invalid storage", http.StatusInternalServerError)
+	files, err := h.storage.Files(h.sc.Name(r), h.sc.IsPermanent(r))
+	if h.respondWithError(err, w, "invalid storage", http.StatusInternalServerError) {
 		return
 	}
-
-	list := h.fs.Files(sPath)
 
 	type JSONInfo struct {
 		Name string `json:"name"`
 	}
-	info := make([]JSONInfo, 0, len(list))
-	for _, l := range list {
-		info = append(info, JSONInfo{Name: l.Name()})
+	info := make([]JSONInfo, 0, len(files))
+	for _, f := range files {
+		info = append(info, JSONInfo{Name: f.Name})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	err := enc.Encode(info)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(info)
 	if err != nil {
 		h.logger.Error(err)
 	}
@@ -262,6 +294,7 @@ func (h *Handlers) respondWithInvalidMethodError(m string, w http.ResponseWriter
 	return false
 }
 
+// UploadHandler upload file to storage
 func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	if h.respondWithInvalidMethodError(r.Method, w) {
 		return
@@ -272,7 +305,6 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sPath := h.currentPath(r)
 	for {
 		part, err := mr.NextPart()
 		if err == io.EOF {
@@ -288,20 +320,16 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		tempFileName, err := h.tempFS.Store("", fileName, part)
-		if h.respondWithError(err, w, "unable to create file", http.StatusInternalServerError) {
+		_, err = h.storage.Upload(h.sc.Name(r), h.sc.IsPermanent(r), fileName, part)
+		if h.respondWithError(err, w, fmt.Sprintf("unable to store file %s", fileName), http.StatusInternalServerError) {
 			return
-		}
-
-		err = h.fs.Move(h.tempFS.Join(tempFileName), sPath, fileName)
-		if err != nil {
-			h.logger.Error(err)
 		}
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
+// RemoveHandler removes current file from storage
 func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	if h.respondWithInvalidMethodError(r.Method, w) {
 		return
@@ -313,12 +341,11 @@ func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sPath := h.currentPath(r)
-	err := h.fs.Remove(sPath, fileName)
-	if err == fs.ErrNotExists {
-		h.respondWithError(fileNotExistError(fileName), w, "file name doesn't exist", http.StatusBadRequest)
-		return
-	}
+	err := h.storage.Remove(h.sc.Name(r), h.sc.IsPermanent(r), fileName)
+	// if err == fs.ErrNotExists {
+	// 	h.respondWithError(fileNotExistError(fileName), w, "file name doesn't exist", http.StatusBadRequest)
+	// 	return
+	// }
 
 	if h.respondWithError(err, w, "unable to remove file", http.StatusInternalServerError) {
 		return
@@ -327,6 +354,7 @@ func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// ShareTextHandler crate file from share text request
 func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 	if h.respondWithInvalidMethodError(r.Method, w) {
 		return
@@ -341,8 +369,7 @@ func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sPath := h.currentPath(r)
-	_, err := h.fs.Store(sPath, title, strings.NewReader(body))
+	_, err := h.storage.Upload(h.sc.Name(r), h.sc.IsPermanent(r), title, strings.NewReader(body))
 	if h.respondWithError(err, w, "unable to store text file", http.StatusInternalServerError) {
 		return
 	}
@@ -350,6 +377,7 @@ func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// RecoverHandler middlewere recover for undefined panic error
 func (h *Handlers) RecoverHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -362,6 +390,7 @@ func (h *Handlers) RecoverHandler(next http.Handler) http.Handler {
 	})
 }
 
+// CheckAuth middlewere for auth
 func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		storageName := h.sc.Name(r)
@@ -397,40 +426,16 @@ func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 	})
 }
 
-func (h *Handlers) createSkel(storageName string, permanent bool) error {
-	createFolder := func(path string) error {
-		err := h.fs.Mkdir(path)
-		if err != nil {
-			return err
-		}
-
+func (h *Handlers) createIfNotExist(name string, isPermanent bool) error {
+	err := h.storage.CreateStorage(name, isPermanent)
+	if errors.Is(err, ErrAlreadyExist) {
 		return nil
 	}
-
-	err := createFolder(h.path(storageName))
-	if err != nil {
-		return err
-	}
-
-	if permanent {
-		err := createFolder(h.permanentPath(storageName))
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return err
 }
 
-func (h *Handlers) createIfNotExist(storageName string, permanent bool) error {
-	if !h.fs.IsExists(storageName) {
-		return h.createSkel(storageName, permanent)
-	}
-	return nil
-}
-
-func (h *Handlers) setUserCookie(w http.ResponseWriter, sessionName, sessionId string, expires int64) {
-	cookie := http.Cookie{Name: sessionName, Value: sessionId, Path: "/", Expires: time.Unix(expires, 0), HttpOnly: true}
+func (h *Handlers) setUserCookie(w http.ResponseWriter, sessionName, sessionID string, expires int64) {
+	cookie := http.Cookie{Name: sessionName, Value: sessionID, Path: "/", Expires: time.Unix(expires, 0), HttpOnly: true}
 	http.SetCookie(w, &cookie)
 }
 
