@@ -74,9 +74,9 @@ func NewHandlers(checker StorageChecker, a Authentificator, s Storager, l *logru
 	}
 }
 
-func (h *Handlers) respondWithError(err error, w http.ResponseWriter, description string, httpStatusCode int) bool {
+func (h *Handlers) respondWithError(err error, w http.ResponseWriter, context, description string, httpStatusCode int) bool {
 	if err != nil {
-		h.logger.Error(err)
+		h.logger.Error(fmt.Errorf("[%s] %s: %w", context, description, err))
 		http.Error(w, description, httpStatusCode)
 		return true
 	}
@@ -114,7 +114,7 @@ func (h *Handlers) requestParameters(r *http.Request, withFile bool) (storagePar
 // IndexHTMLHandler process index.html file
 func (h *Handlers) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r, false)
-	if h.respondWithError(fmt.Errorf("[IndexHTMLHandler] invalid request parameters: %w", err), w, "invalid parameters", http.StatusInternalServerError) {
+	if h.respondWithError(err, w, "IndexHTMLHandler", "invalid parameters", http.StatusInternalServerError) {
 		return
 	}
 
@@ -126,7 +126,7 @@ func (h *Handlers) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-type", "text/html")
 	_, err = io.Copy(w, pr)
-	if h.respondWithError(fmt.Errorf("[IndexHTMLHandler] copy error: %w", err), w, "can't open index.html", http.StatusInternalServerError) {
+	if h.respondWithError(err, w, "IndexHTMLHandler", "can't open index.html", http.StatusInternalServerError) {
 		return
 	}
 }
@@ -134,7 +134,7 @@ func (h *Handlers) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 // GetFileHandler get single file from storage
 func (h *Handlers) GetFileHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r, true)
-	if h.respondWithError(fmt.Errorf("[GetFileHandler] invalid request parameters: %w", err), w, "invalid parameters", http.StatusInternalServerError) {
+	if h.respondWithError(err, w, "GetFileHandler", "invalid parameters", http.StatusInternalServerError) {
 		return
 	}
 
@@ -145,7 +145,7 @@ func (h *Handlers) GetFileHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	_, err = io.Copy(w, pr)
-	if h.respondWithError(fmt.Errorf("[GetFileHandler] copy error: %w", err), w, "can't open file", http.StatusInternalServerError) {
+	if h.respondWithError(err, w, "GetFileHandler", "can't open file", http.StatusInternalServerError) {
 		return
 	}
 }
@@ -186,7 +186,7 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.respondWithError(err, w, "registration error", http.StatusInternalServerError) {
+	if h.respondWithError(err, w, "RegisterHandler", "registration error", http.StatusInternalServerError) {
 		return
 	}
 
@@ -203,7 +203,7 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 			userInfo.AddError("common", "Storage with this name already exists")
 			return
 		}
-	} else if h.respondWithError(fmt.Errorf("[RegisterHandler] create storage error: %w", err), w, "unable to create storage", http.StatusInternalServerError) {
+	} else if h.respondWithError(err, w, "RegisterHandler", "unable to create storage", http.StatusInternalServerError) {
 		return
 	}
 
@@ -255,7 +255,7 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	} else if err == goauth.ErrNoSuchUser || err == goauth.ErrPwdNotMatch {
 		userInfo.AddError("common", "Invalid user name or password")
 		return
-	} else if h.respondWithError(fmt.Errorf("[LoginHandler] authorization error: %w", err), w, "authorization error", http.StatusInternalServerError) {
+	} else if h.respondWithError(err, w, "LoginHandler", "authorization error", http.StatusInternalServerError) {
 		return
 	}
 
@@ -283,17 +283,17 @@ func marshalFileInfo(file *File) *templates.FileInfo {
 // ViewHandler executes view.html template for view files in requested folder
 func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r, false)
-	if h.respondWithError(fmt.Errorf("[ViewHandler] invalid parameters: %w", err), w, "invalid parameters", http.StatusInternalServerError) {
+	if h.respondWithError(err, w, "ViewHandler", "invalid parameters", http.StatusInternalServerError) {
 		return
 	}
 
 	if !h.storage.IsStorageExists(sp.StorageName) {
-		h.respondWithError(fmt.Errorf("[ViewHandler] invalid stoarge: %s", sp.StorageName), w, "invalid stoarge", http.StatusInternalServerError)
+		h.respondWithError(fmt.Errorf("invalid storage: %s", sp.StorageName), w, "ViewHandler", "storage does not exist", http.StatusInternalServerError)
 		return
 	}
 
 	files, err := h.storage.Files(sp.StorageName, sp.IsPermanent)
-	if h.respondWithError(fmt.Errorf("[ViewHandler] get files error: %w", err), w, "invalid storage", http.StatusInternalServerError) {
+	if h.respondWithError(err, w, "ViewHandler", fmt.Sprintf("unable to get files from storage: %s", sp.StorageName), http.StatusInternalServerError) {
 		return
 	}
 
@@ -306,24 +306,24 @@ func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = viewTemplate.Execute(w)
 	if err != nil {
-		h.respondWithError(fmt.Errorf("[ViewHandler] template error: %w", err), w, "view error", http.StatusInternalServerError)
+		h.respondWithError(err, w, "ViewHandler", "view error", http.StatusInternalServerError)
 	}
 }
 
 // JSONViewHandler it's spike for duplo client
 func (h *Handlers) JSONViewHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r, false)
-	if h.respondWithError(fmt.Errorf("[JSONViewHandler] invalid parameters: %w", err), w, "invalid parameters", http.StatusInternalServerError) {
+	if h.respondWithError(err, w, "JSONViewHandler", "invalid parameters", http.StatusInternalServerError) {
 		return
 	}
 
 	if !h.storage.IsStorageExists(sp.StorageName) {
-		h.respondWithError(fmt.Errorf("[JSONViewHandler] invalid stoarge: %s", sp.StorageName), w, "invalid stoarge", http.StatusInternalServerError)
+		h.respondWithError(errors.New("invalid storage"), w, "JSONViewHandler", fmt.Sprintf("storage does not exist: %s", sp.StorageName), http.StatusInternalServerError)
 		return
 	}
 
 	files, err := h.storage.Files(sp.StorageName, sp.IsPermanent)
-	if h.respondWithError(fmt.Errorf("[JSONViewHandler] get files error: %w", err), w, "invalid storage", http.StatusInternalServerError) {
+	if h.respondWithError(err, w, "JSONViewHandler", fmt.Sprintf("unable to get files from storage: %s", sp.StorageName), http.StatusInternalServerError) {
 		return
 	}
 
@@ -339,7 +339,7 @@ func (h *Handlers) JSONViewHandler(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
 	err = encoder.Encode(info)
 	if err != nil {
-		h.respondWithError(fmt.Errorf("[JSONViewHandler] encoder error: %w", err), w, "json encoder error", http.StatusInternalServerError)
+		h.respondWithError(err, w, "JSONViewHandler", "json encoder error", http.StatusInternalServerError)
 	}
 }
 
@@ -359,12 +359,12 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sp, err := h.requestParameters(r, false)
-	if h.respondWithError(fmt.Errorf("[UploadHandler] invalid parameters: %w", err), w, "invalid parameters", http.StatusInternalServerError) {
+	if h.respondWithError(err, w, "UploadHandler", "invalid parameters", http.StatusInternalServerError) {
 		return
 	}
 
 	mr, err := r.MultipartReader()
-	if h.respondWithError(fmt.Errorf("[UploadHandler] multipart reader error: %w", err), w, "internal server error", http.StatusInternalServerError) {
+	if h.respondWithError(err, w, "UploadHandler", "request data error", http.StatusInternalServerError) {
 		return
 	}
 
@@ -374,7 +374,7 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if h.respondWithError(fmt.Errorf("[UploadHandler] read next part error: %w", err), w, "internal server error", http.StatusInternalServerError) {
+		if h.respondWithError(err, w, "UploadHandler", "request data error", http.StatusInternalServerError) {
 			return
 		}
 
@@ -384,7 +384,7 @@ func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_, err = h.storage.Upload(sp.StorageName, sp.IsPermanent, fileName, part)
-		if h.respondWithError(fmt.Errorf("[UploadHandler] upload to stoarge error: %w", err), w, fmt.Sprintf("unable to store file %s", fileName), http.StatusInternalServerError) {
+		if h.respondWithError(err, w, "UploadHandler", fmt.Sprintf("unable to store file %s", fileName), http.StatusInternalServerError) {
 			return
 		}
 	}
@@ -400,17 +400,22 @@ func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 
 	fileName := r.FormValue("fileName")
 	if fileName == "" {
-		h.respondWithError(errors.New("[RemoveHandler] file name was not set"), w, "file name was not set", http.StatusBadRequest)
+		h.respondWithError(errors.New("file error"), w, "RemoveHandler", "file name was not set", http.StatusBadRequest)
 		return
 	}
 
-	err := h.storage.Remove(h.sc.Name(r), h.sc.IsPermanent(r), fileName)
+	sp, err := h.requestParameters(r, false)
+	if h.respondWithError(err, w, "RemoveHandler", "invalid parameters", http.StatusInternalServerError) {
+		return
+	}
+
+	err = h.storage.Remove(sp.StorageName, sp.IsPermanent, fileName)
 	// if err == fs.ErrNotExists {
 	// 	h.respondWithError(fileNotExistError(fileName), w, "file name doesn't exist", http.StatusBadRequest)
 	// 	return
 	// }
 
-	if h.respondWithError(fmt.Errorf("[RemoveHandler] remove file error: %w", err), w, "unable to remove file", http.StatusInternalServerError) {
+	if h.respondWithError(err, w, "RemoveHandler", fmt.Sprintf("unable to remove file: %s from storage: %s", fileName, sp.StorageName), http.StatusInternalServerError) {
 		return
 	}
 
@@ -427,12 +432,17 @@ func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 	body := r.FormValue("body")
 
 	if title == "" || body == "" {
-		h.respondWithError(fmt.Errorf("[ShareTextHandler] title or body was not set; title = %s body = %s", title, body), w, "title or body was not set", http.StatusBadRequest)
+		h.respondWithError(errors.New("param error"), w, "ShareTextHandler", fmt.Sprintf("title or body was not set; title = %s body = %s", title, body), http.StatusBadRequest)
 		return
 	}
 
-	_, err := h.storage.Upload(h.sc.Name(r), h.sc.IsPermanent(r), title, strings.NewReader(body))
-	if h.respondWithError(fmt.Errorf("[ShareTextHandler] upload error: %w", err), w, "unable to store text file", http.StatusInternalServerError) {
+	sp, err := h.requestParameters(r, false)
+	if h.respondWithError(err, w, "ShareTextHandler", "invalid parameters", http.StatusInternalServerError) {
+		return
+	}
+
+	_, err = h.storage.Upload(sp.StorageName, sp.IsPermanent, title, strings.NewReader(body))
+	if h.respondWithError(err, w, "ShareTextHandler", fmt.Sprintf("unable to store text file: %s for storage: %s", title, sp.StorageName), http.StatusInternalServerError) {
 		return
 	}
 
@@ -444,7 +454,7 @@ func (h *Handlers) RecoverHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if e, ok := recover().(error); ok {
-				h.respondWithError(fmt.Errorf("[RecoverHandler] someting has gone wrong: %w", e), w, "internal server error", http.StatusInternalServerError)
+				h.respondWithError(e, w, "RecoverHandler", "internal server error", http.StatusInternalServerError)
 				return
 			}
 		}()
@@ -466,7 +476,7 @@ func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 
 		if h.sc.IsPublic(storageName) {
 			err = h.createIfNotExist(storageName, false)
-			if h.respondWithError(fmt.Errorf("[CheckAuth] create storage error: %w", err), w, "unable to create storage", http.StatusInternalServerError) {
+			if h.respondWithError(err, w, "CheckAuth", "unable to create public storage", http.StatusInternalServerError) {
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -480,7 +490,7 @@ func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 		}
 
 		err = h.createIfNotExist(storageName, true)
-		if h.respondWithError(fmt.Errorf("[CheckAuth] create storage error: %w", err), w, "unable to create storage", http.StatusInternalServerError) {
+		if h.respondWithError(err, w, "CheckAuth", "unable to create storage", http.StatusInternalServerError) {
 			return
 		}
 

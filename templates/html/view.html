@@ -50,7 +50,7 @@
 														}
 														return i;
 													}
-													var file_date = new Date({{$fileInfo.ModTime.Unix}} * 1000);
+													var file_date = new Date({{$fileInfo.ModTime}} * 1000);
 													var file_date_string = addZero(file_date.getHours()) + ":" + addZero(file_date.getMinutes()) + ":" + addZero(file_date.getSeconds());
 													document.write(file_date_string);
 												</script>

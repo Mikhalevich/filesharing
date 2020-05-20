@@ -16,8 +16,9 @@ import (
 )
 
 type params struct {
-	Host         string
-	DBConnection string
+	Host            string
+	DBConnection    string
+	FileServiceHost string
 }
 
 func loadParams() (*params, error) {
@@ -32,6 +33,11 @@ func loadParams() (*params, error) {
 	// if p.DBConnection == "" {
 	// 	return nil, errors.New("[loadParams] database connection string is empty, please specify FS_DB_CONNECTION_STRING variable")
 	// }
+
+	p.FileServiceHost = os.Getenv("FS_FILE_SERVICE_HOST")
+	if p.FileServiceHost == "" {
+		return nil, errors.New("file service host is empty, please specify FS_FILE_SERVICE_HOST variable")
+	}
 
 	return &p, nil
 }
@@ -82,7 +88,7 @@ func main() {
 		auth = goauth.NewNullAuthentificator()
 	}
 
-	fsConnection, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
+	fsConnection, err := grpc.Dial(params.FileServiceHost, grpc.WithInsecure())
 	if err != nil {
 		logger.Errorf("did not connect: %w", err)
 		return
