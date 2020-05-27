@@ -11,11 +11,11 @@ import (
 
 // GRPCFileServiceClient it's just wrapper around grpc FileServiceClient
 type GRPCFileServiceClient struct {
-	client proto.FileServiceClient
+	client proto.FileService
 }
 
 // NewGRPCFileServiceClient create new client
-func NewGRPCFileServiceClient(c proto.FileServiceClient) *GRPCFileServiceClient {
+func NewGRPCFileServiceClient(c proto.FileService) *GRPCFileServiceClient {
 	return &GRPCFileServiceClient{
 		client: c,
 	}
@@ -135,7 +135,17 @@ func (c *GRPCFileServiceClient) Upload(storage string, isPermanent bool, fileNam
 		}
 	}
 
-	file, err := stream.CloseAndRecv()
+	err = stream.Send(&proto.FileUploadRequest{
+		FileChunk: &proto.FileUploadRequest_End{
+			End: true,
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := stream.Recv()
 	if err != nil {
 		return nil, err
 	}

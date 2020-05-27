@@ -7,18 +7,17 @@ services:
     environment:
       FS_HOST: ":8080"
       FS_DB_CONNECTION_STRING: "user=postgres password=123456 dbname=filesharing host=dbpg port=5432 sslmode=disable"
-      FS_FILE_SERVICE_HOST: "file_service:50051"
+      FS_FILE_SERVICE_NAME: "filesharing.fileservice"
     depends_on:
     - dbpg
     - file_service
   file_service:
     build: file_service
-    ports:
-    - "50051:50051"
     environment:
-      ROOT_DIR: "storage"
-      PERMANENT_DIRECTORY: "permanent"
-      CLEAN_TIME: "23:59"
+      FS_SERVICE_NAME: "filesharing.fileservice"
+      FS_ROOT_DIR: "storage"
+      FS_PERMANENT_DIRECTORY: "permanent"
+      FS_CLEAN_TIME: "23:59"
   dbpg:
     image: postgres
     ports:

@@ -11,14 +11,14 @@ import (
 	"github.com/Mikhalevich/goauth"
 	"github.com/Mikhalevich/goauth/db"
 	"github.com/Mikhalevich/goauth/email"
+	"github.com/micro/go-micro/v2"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 type params struct {
 	Host            string
 	DBConnection    string
-	FileServiceHost string
+	FileServiceName string
 }
 
 func loadParams() (*params, error) {
@@ -34,9 +34,9 @@ func loadParams() (*params, error) {
 	// 	return nil, errors.New("[loadParams] database connection string is empty, please specify FS_DB_CONNECTION_STRING variable")
 	// }
 
-	p.FileServiceHost = os.Getenv("FS_FILE_SERVICE_HOST")
-	if p.FileServiceHost == "" {
-		return nil, errors.New("file service host is empty, please specify FS_FILE_SERVICE_HOST variable")
+	p.FileServiceName = os.Getenv("FS_FILE_SERVICE_NAME")
+	if p.FileServiceName == "" {
+		return nil, errors.New("file service name is empty, please specify FS_FILE_SERVICE_NAME variable")
 	}
 
 	return &p, nil
@@ -88,13 +88,9 @@ func main() {
 		auth = goauth.NewNullAuthentificator()
 	}
 
-	fsConnection, err := grpc.Dial(params.FileServiceHost, grpc.WithInsecure())
-	if err != nil {
-		logger.Errorf("did not connect: %w", err)
-		return
-	}
-	defer fsConnection.Close()
-	fsClient := proto.NewFileServiceClient(fsConnection)
+	microService := micro.NewService()
+	microService.Init()
+	fsClient := proto.NewFileService(params.FileServiceName, microService.Client())
 
 	h := handlers.NewHandlers(storageChecker, auth, NewGRPCFileServiceClient(fsClient), logger)
 	r := router.NewRouter(enableAuth, h, logger)
