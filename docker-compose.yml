@@ -15,9 +15,12 @@ services:
     build: file_service
     environment:
       FS_SERVICE_NAME: "filesharing.fileservice"
-      FS_ROOT_DIR: "storage"
+      FS_ROOT_DIR: "/data/storage/"
+      FS_TEMP_DIR: "/data/temp/"
       FS_PERMANENT_DIRECTORY: "permanent"
       FS_CLEAN_TIME: "23:59"
+    volumes:
+    - filesharing-file-service-storage:/data/
   dbpg:
     image: postgres
     ports:
@@ -27,6 +30,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123456
     volumes:
-    - db-data-filesharing:/var/lib/postgresql/data
+    - filesharing-db-data:/var/lib/postgresql/data
 volumes:
-  db-data-filesharing:
+  filesharing-file-service-storage:
+  filesharing-db-data:
