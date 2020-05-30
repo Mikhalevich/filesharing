@@ -124,7 +124,7 @@ func (c *GRPCFileServiceClient) Upload(storage string, isPermanent bool, fileNam
 		if n > 0 {
 			stream.Send(&proto.FileUploadRequest{
 				FileChunk: &proto.FileUploadRequest_Content{
-					buf[:n],
+					Content: buf[:n],
 				},
 			})
 		}
