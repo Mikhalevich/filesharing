@@ -7,10 +7,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/Mikhalevich/filesharing/templates"
-	"github.com/Mikhalevich/goauth"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,6 +20,8 @@ const (
 var (
 	// ErrAlreadyExist indicates that storage already exists
 	ErrAlreadyExist = errors.New("alredy exist")
+	ErrNotExist     = errors.New("not exist")
+	ErrExpired      = errors.New("session is expired")
 )
 
 // File represents one file from storage
@@ -29,6 +29,15 @@ type File struct {
 	Name    string
 	Size    int64
 	ModTime int64
+}
+
+type User struct {
+	Name string
+	Pwd  string
+}
+
+type Token struct {
+	Value string
 }
 
 // StorageChecker interface retrieve info about storage from request
@@ -39,11 +48,17 @@ type StorageChecker interface {
 	IsPublic(name string) bool
 }
 
+type Sessioner interface {
+	GetToken(r *http.Request) (*Token, error)
+	SetToken(w http.ResponseWriter, token *Token, name string)
+	Remove(w http.ResponseWriter, name string)
+}
+
 // Authentificator provide user auth functional
 type Authentificator interface {
-	GetUser(r *http.Request) (*goauth.User, error)
-	AuthorizeByName(name, password, ip string) (*goauth.Session, error)
-	RegisterByName(name, password string) (*goauth.Session, error)
+	CreateUser(user *User) (*Token, error)
+	Auth(user *User) (*Token, error)
+	UserNameByToken(token string) (string, error)
 }
 
 // Storager storage communication interface
@@ -59,15 +74,17 @@ type Storager interface {
 // Handlers represents gateway handlers
 type Handlers struct {
 	sc      StorageChecker
+	session Sessioner
 	auth    Authentificator
 	storage Storager
 	logger  *logrus.Logger
 }
 
 // NewHandlers constructor for Handlers
-func NewHandlers(checker StorageChecker, a Authentificator, s Storager, l *logrus.Logger) *Handlers {
+func NewHandlers(checker StorageChecker, ses Sessioner, a Authentificator, s Storager, l *logrus.Logger) *Handlers {
 	return &Handlers{
 		sc:      checker,
+		session: ses,
 		auth:    a,
 		storage: s,
 		logger:  l,
@@ -180,8 +197,12 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := h.auth.RegisterByName(userInfo.StorageName, userInfo.Password)
-	if err == goauth.ErrAlreadyExists {
+	token, err := h.auth.CreateUser(&User{
+		Name: userInfo.StorageName,
+		Pwd:  userInfo.Password,
+	})
+
+	if errors.Is(err, ErrAlreadyExist) {
 		userInfo.AddError("common", "Storage with this name already exists")
 		return
 	}
@@ -190,20 +211,11 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	checkForAlreadyExistError := false
-	if session != nil {
-		h.setUserCookie(w, userInfo.StorageName, session.Value, session.Expires)
-	} else {
-		checkForAlreadyExistError = true
-	}
+	h.session.SetToken(w, token, userInfo.StorageName)
 
 	err = h.storage.CreateStorage(userInfo.StorageName, true)
-	if errors.Is(err, ErrAlreadyExist) {
-		if checkForAlreadyExistError {
-			userInfo.AddError("common", "Storage with this name already exists")
-			return
-		}
-	} else if h.respondWithError(err, w, "RegisterHandler", "unable to create storage", http.StatusInternalServerError) {
+	if !errors.Is(err, ErrAlreadyExist) &&
+		h.respondWithError(err, w, "RegisterHandler", "unable to create storage", http.StatusInternalServerError) {
 		return
 	}
 
@@ -248,25 +260,16 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := h.auth.AuthorizeByName(storageName, userInfo.Password, r.RemoteAddr)
-	if err == goauth.ErrManyRequests {
-		userInfo.AddError("common", "Request is not allowed, too many requests")
-		return
-	} else if err == goauth.ErrNoSuchUser || err == goauth.ErrPwdNotMatch {
-		userInfo.AddError("common", "Invalid user name or password")
-		return
-	} else if h.respondWithError(err, w, "LoginHandler", "authorization error", http.StatusInternalServerError) {
+	token, err := h.auth.Auth(&User{
+		Name: storageName,
+		Pwd:  userInfo.Password,
+	})
+
+	if h.respondWithError(err, w, "LoginHandler", "authorization error", http.StatusInternalServerError) {
 		return
 	}
 
-	if session != nil {
-		h.setUserCookie(w, storageName, session.Value, session.Expires)
-	} else {
-		if !h.storage.IsStorageExists(storageName) {
-			userInfo.AddError("common", "Invalid user name or password")
-			return
-		}
-	}
+	h.session.SetToken(w, token, storageName)
 
 	renderTemplate = false
 	http.Redirect(w, r, fmt.Sprintf("/%s", storageName), http.StatusFound)
@@ -483,8 +486,19 @@ func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		_, err = h.auth.GetUser(r)
+		token, err := h.session.GetToken(r)
 		if err != nil {
+			http.Redirect(w, r, fmt.Sprintf("/login/%s", storageName), http.StatusFound)
+			return
+		}
+
+		user, err := h.auth.UserNameByToken(token.Value)
+		if err != nil {
+			http.Redirect(w, r, fmt.Sprintf("/login/%s", storageName), http.StatusFound)
+			return
+		}
+
+		if user != storageName {
 			http.Redirect(w, r, fmt.Sprintf("/login/%s", storageName), http.StatusFound)
 			return
 		}
@@ -504,13 +518,4 @@ func (h *Handlers) createIfNotExist(name string, isPermanent bool) error {
 		return nil
 	}
 	return err
-}
-
-func (h *Handlers) setUserCookie(w http.ResponseWriter, sessionName, sessionID string, expires int64) {
-	cookie := http.Cookie{Name: sessionName, Value: sessionID, Path: "/", Expires: time.Unix(expires, 0), HttpOnly: true}
-	http.SetCookie(w, &cookie)
-}
-
-func (h *Handlers) removeCookie(w http.ResponseWriter, sessionName string) {
-	http.SetCookie(w, &http.Cookie{Name: sessionName, Value: "", Path: "/", Expires: time.Unix(0, 0), HttpOnly: true})
 }

@@ -1,16 +1,16 @@
 version: "3"
 services:
-  web:
+  filesharing:
     build: .
     ports:
     - "8080:8080"
     environment:
       FS_HOST: ":8080"
-      FS_DB_CONNECTION_STRING: "user=postgres password=123456 dbname=filesharing host=dbpg port=5432 sslmode=disable"
       FS_FILE_SERVICE_NAME: "filesharing.fileservice"
+      FS_AUTH_SERVICE_NAME: "filesharing.authservice"
     depends_on:
-    - dbpg
     - file_service
+    - auth_service
   file_service:
     build: file_service
     environment:
@@ -21,6 +21,13 @@ services:
       FS_CLEAN_TIME: "23:59"
     volumes:
     - filesharing-file-service-storage:/data/
+  auth_service:
+    build: filesharing-auth-service
+    environment:
+      AS_SERVICE_NAME: "filesharing.authservice"
+      AS_DB_CONNECTION_STRING: "user=postgres password=123456 dbname=filesharing host=dbpg port=5432 sslmode=disable"
+    depends_on:
+      - dbpg
   dbpg:
     image: postgres
     ports:

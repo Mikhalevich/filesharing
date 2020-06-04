@@ -5,20 +5,18 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Mikhalevich/file_service/proto"
+	fspb "github.com/Mikhalevich/file_service/proto"
+	apb "github.com/Mikhalevich/filesharing-auth-service/proto"
 	"github.com/Mikhalevich/filesharing/handlers"
 	"github.com/Mikhalevich/filesharing/router"
-	"github.com/Mikhalevich/goauth"
-	"github.com/Mikhalevich/goauth/db"
-	"github.com/Mikhalevich/goauth/email"
 	"github.com/micro/go-micro/v2"
 	"github.com/sirupsen/logrus"
 )
 
 type params struct {
 	Host            string
-	DBConnection    string
 	FileServiceName string
+	AuthServiceName string
 }
 
 func loadParams() (*params, error) {
@@ -29,14 +27,14 @@ func loadParams() (*params, error) {
 		return nil, errors.New("host name is empty, please specify FS_HOST variable")
 	}
 
-	p.DBConnection = os.Getenv("FS_DB_CONNECTION_STRING")
-	// if p.DBConnection == "" {
-	// 	return nil, errors.New("[loadParams] database connection string is empty, please specify FS_DB_CONNECTION_STRING variable")
-	// }
-
 	p.FileServiceName = os.Getenv("FS_FILE_SERVICE_NAME")
 	if p.FileServiceName == "" {
 		return nil, errors.New("file service name is empty, please specify FS_FILE_SERVICE_NAME variable")
+	}
+
+	p.AuthServiceName = os.Getenv("FS_AUTH_SERVICE_NAME")
+	if p.AuthServiceName == "" {
+		return nil, errors.New("auth service name is empty, please specify FS_AUTH_SERVICE_NAME variable")
 	}
 
 	return &p, nil
@@ -56,44 +54,16 @@ func main() {
 	}
 
 	storageChecker := router.NewPublicStorages()
-
-	var auth goauth.Authentifier
-	enableAuth := params.DBConnection != ""
-	if enableAuth {
-		var pg *db.Postgres
-		for i := 0; i < 3; i++ {
-			pg, err = db.NewPostgres(params.DBConnection)
-			if err == nil {
-				break
-			}
-
-			logger.Infof("attemp connect to database: %d  error: %v", i, err)
-		}
-
-		if err != nil {
-			logger.Error(err)
-			return
-		}
-
-		defer pg.Close()
-
-		es := &email.GomailSender{
-			Host:     "smtp.gmail.com",
-			Port:     587,
-			From:     "",
-			Password: "",
-		}
-		auth = goauth.NewAuthentificator(pg, pg, NewCookieSession(storageChecker, 1*60*60*24*30), es)
-	} else {
-		auth = goauth.NewNullAuthentificator()
-	}
+	cookieSession := NewCookieSession(storageChecker, 1*60*60*24*30)
 
 	microService := micro.NewService()
 	microService.Init()
-	fsClient := proto.NewFileService(params.FileServiceName, microService.Client())
+	fsClient := fspb.NewFileService(params.FileServiceName, microService.Client())
 
-	h := handlers.NewHandlers(storageChecker, auth, NewGRPCFileServiceClient(fsClient), logger)
-	r := router.NewRouter(enableAuth, h, logger)
+	authClient := apb.NewAuthService(params.AuthServiceName, microService.Client())
+
+	h := handlers.NewHandlers(storageChecker, cookieSession, NewGRPCAuthServiceClient(authClient), NewGRPCFileServiceClient(fsClient), logger)
+	r := router.NewRouter(true, h, logger)
 
 	logger.Infof("Running params = %s", params)
 

@@ -1,3 +1,6 @@
 [submodule "file_service"]
 	path = file_service
 	url = git@github.com:Mikhalevich/file_service.git
+[submodule "filesharing-auth-service"]
+	path = filesharing-auth-service
+	url = ./filesharing-auth-service/
