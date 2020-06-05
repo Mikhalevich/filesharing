@@ -30,10 +30,6 @@ func (cs *CookieSession) GetToken(r *http.Request) (*handlers.Token, error) {
 			continue
 		}
 
-		if cook.Expires.Unix() < time.Now().Unix() {
-			return nil, handlers.ErrExpired
-		}
-
 		return &handlers.Token{
 			Value: cook.Value,
 		}, nil

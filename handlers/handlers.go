@@ -488,17 +488,20 @@ func (h *Handlers) CheckAuth(next http.Handler) http.Handler {
 
 		token, err := h.session.GetToken(r)
 		if err != nil {
+			h.logger.Error(fmt.Errorf("[CheckAuth] unable to get token: %w", err))
 			http.Redirect(w, r, fmt.Sprintf("/login/%s", storageName), http.StatusFound)
 			return
 		}
 
 		user, err := h.auth.UserNameByToken(token.Value)
 		if err != nil {
+			h.logger.Error(fmt.Errorf("[CheckAuth] unable to get user by token: %w", err))
 			http.Redirect(w, r, fmt.Sprintf("/login/%s", storageName), http.StatusFound)
 			return
 		}
 
 		if user != storageName {
+			h.logger.Error(fmt.Errorf("[CheckAuth] invalid user user = %s, storage = %s", user, storageName))
 			http.Redirect(w, r, fmt.Sprintf("/login/%s", storageName), http.StatusFound)
 			return
 		}
