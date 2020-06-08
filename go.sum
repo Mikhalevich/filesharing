@@ -37,16 +37,6 @@ github.com/Mikhalevich/argparser v0.0.0-20190906102120-0fc64fc3e1a2 h1:1eadvuqqU
 github.com/Mikhalevich/argparser v0.0.0-20190906102120-0fc64fc3e1a2/go.mod h1:IJtu+uzLoNwPLGEHYTibKyo9ZxmjjkAKmuk4BAvLKEs=
 github.com/Mikhalevich/file_service v0.0.0-20200527195641-08f26e056ecc h1:g0VxHz5EcxRzQsTIPwBIDaZPQ4Qqq6shCSzIG51XQ2M=
 github.com/Mikhalevich/file_service v0.0.0-20200527195641-08f26e056ecc/go.mod h1:dl2zdkQVnNQys03kfuS9mevhoGS902ec4WFPZ/PBNS0=
-github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200604211541-5debdf7095d2 h1:SwEI+9JbJdPHdYGUmYNeGguOjWuz3TpN121JbDYe0BE=
-github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200604211541-5debdf7095d2/go.mod h1:I2vu5uz5V11vcvprXJ6cSd5qYS80xxV66da2AMvJWTw=
-github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200604220729-44a8c8ade31a h1:kimR++ZGJhkLoy+ft8svDhC24lA5Yizo8kMMLysnxmQ=
-github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200604220729-44a8c8ade31a/go.mod h1:I2vu5uz5V11vcvprXJ6cSd5qYS80xxV66da2AMvJWTw=
-github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200605092621-b5fb7d1bbe88 h1:TN2eW2EsHKQlnEjjLEFguygsrWINO9Ne/gI7DbHOEE0=
-github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200605092621-b5fb7d1bbe88/go.mod h1:/3bXq1M56WNan6jjSyqevbG9ynigm0XBOB3IAs9DRtg=
-github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200607205605-e8989a755ed8 h1:X6hs+RdIjp3HJlJQxaaSd/UriBvbH+f4z7Tvjc8a85U=
-github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200607205605-e8989a755ed8/go.mod h1:/3bXq1M56WNan6jjSyqevbG9ynigm0XBOB3IAs9DRtg=
-github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200608082321-0e121c1ea70b h1:ChBW9jZ/k/IKPTLD4vLhVRo9txfRgyfkjOmP0Ry15gc=
-github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200608082321-0e121c1ea70b/go.mod h1:/3bXq1M56WNan6jjSyqevbG9ynigm0XBOB3IAs9DRtg=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200608084359-580b31d34476 h1:lKnw+gR4nJJeYh88qg0T7UDmHyEJXbDrpnwUYFXO4jQ=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200608084359-580b31d34476/go.mod h1:/3bXq1M56WNan6jjSyqevbG9ynigm0XBOB3IAs9DRtg=
 github.com/Mikhalevich/goauth v0.0.0-20191116123314-5ec373094114 h1:gPj7Hz/G7WJzLrn1Js3NaX9GO+nG7bJmy6pula5Id/c=
