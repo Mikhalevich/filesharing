@@ -5,7 +5,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/Mikhalevich/file_service/proto"
+	"github.com/Mikhalevich/filesharing-file-service/proto"
 	"github.com/Mikhalevich/filesharing/handlers"
 )
 

@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	fspb "github.com/Mikhalevich/file_service/proto"
 	apb "github.com/Mikhalevich/filesharing-auth-service/proto"
+	fspb "github.com/Mikhalevich/filesharing-file-service/proto"
 	"github.com/Mikhalevich/filesharing/handlers"
 	"github.com/Mikhalevich/filesharing/router"
 	"github.com/micro/go-micro/v2"

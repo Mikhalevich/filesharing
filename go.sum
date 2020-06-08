@@ -35,10 +35,10 @@ github.com/Microsoft/hcsshim v0.8.6/go.mod h1:Op3hHsoHPAvb6lceZHDtd9OkTew38wNoXn
 github.com/Microsoft/hcsshim v0.8.7-0.20191101173118-65519b62243c/go.mod h1:7xhjOwRV2+0HXGmM0jxaEu+ZiXJFoVZOTfL/dmqbrD8=
 github.com/Mikhalevich/argparser v0.0.0-20190906102120-0fc64fc3e1a2 h1:1eadvuqqUu8KnbyVZXGZHiRL4O596sWSsVRE3IMkomM=
 github.com/Mikhalevich/argparser v0.0.0-20190906102120-0fc64fc3e1a2/go.mod h1:IJtu+uzLoNwPLGEHYTibKyo9ZxmjjkAKmuk4BAvLKEs=
-github.com/Mikhalevich/file_service v0.0.0-20200527195641-08f26e056ecc h1:g0VxHz5EcxRzQsTIPwBIDaZPQ4Qqq6shCSzIG51XQ2M=
-github.com/Mikhalevich/file_service v0.0.0-20200527195641-08f26e056ecc/go.mod h1:dl2zdkQVnNQys03kfuS9mevhoGS902ec4WFPZ/PBNS0=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200608084359-580b31d34476 h1:lKnw+gR4nJJeYh88qg0T7UDmHyEJXbDrpnwUYFXO4jQ=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200608084359-580b31d34476/go.mod h1:/3bXq1M56WNan6jjSyqevbG9ynigm0XBOB3IAs9DRtg=
+github.com/Mikhalevich/filesharing-file-service v0.0.0-20200608141224-d917a27b31c7 h1:xsU/HyMmKrLtxVrPtPI7n56jKxmz+pju5+uqpd4IdyI=
+github.com/Mikhalevich/filesharing-file-service v0.0.0-20200608141224-d917a27b31c7/go.mod h1:N9K2lbhB/1vLYtMptIT57PbPMaaeTjBoRm8pIdqhy1A=
 github.com/Mikhalevich/goauth v0.0.0-20191116123314-5ec373094114 h1:gPj7Hz/G7WJzLrn1Js3NaX9GO+nG7bJmy6pula5Id/c=
 github.com/Mikhalevich/goauth v0.0.0-20191116123314-5ec373094114/go.mod h1:flLFsXZz/777voQFtHe0M+U4IcXT+lIlafAVkQbG/y8=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=

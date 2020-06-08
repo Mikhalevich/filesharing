@@ -3,8 +3,8 @@ module github.com/Mikhalevich/filesharing
 go 1.13
 
 require (
-	github.com/Mikhalevich/file_service v0.0.0-20200527195641-08f26e056ecc
 	github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200608084359-580b31d34476
+	github.com/Mikhalevich/filesharing-file-service v0.0.0-20200608141224-d917a27b31c7
 	github.com/coreos/etcd v3.3.22+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
