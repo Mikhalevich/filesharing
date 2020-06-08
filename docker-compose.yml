@@ -13,7 +13,7 @@ services:
     - file_service
     - auth_service
   file_service:
-    build: file_service
+    build: filesharing-file-service
     environment:
       FS_SERVICE_NAME: "filesharing.fileservice"
       FS_ROOT_DIR: "/data/storage/"
