@@ -17,6 +17,7 @@ type params struct {
 	Host            string
 	FileServiceName string
 	AuthServiceName string
+	AuthPublicCert  string
 }
 
 func loadParams() (*params, error) {
@@ -35,6 +36,11 @@ func loadParams() (*params, error) {
 	p.AuthServiceName = os.Getenv("FS_AUTH_SERVICE_NAME")
 	if p.AuthServiceName == "" {
 		return nil, errors.New("auth service name is empty, please specify FS_AUTH_SERVICE_NAME variable")
+	}
+
+	p.AuthPublicCert = os.Getenv("FS_PUBLIC_CERT")
+	if p.AuthPublicCert == "" {
+		return nil, errors.New("auth public cert is empty, please specify FS_PUBLIC_CERT variable")
 	}
 
 	return &p, nil
@@ -62,7 +68,13 @@ func main() {
 
 	authClient := apb.NewAuthService(params.AuthServiceName, microService.Client())
 
-	h := handlers.NewHandlers(storageChecker, cookieSession, NewGRPCAuthServiceClient(authClient), NewGRPCFileServiceClient(fsClient), logger)
+	authService, err := NewGRPCAuthServiceClient(authClient, params.AuthPublicCert)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+
+	h := handlers.NewHandlers(storageChecker, cookieSession, authService, NewGRPCFileServiceClient(fsClient), logger)
 	r := router.NewRouter(true, h, logger)
 
 	logger.Infof("Running params = %s", params)

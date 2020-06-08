@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/Mikhalevich/filesharing-auth-service/proto"
 	"github.com/Mikhalevich/filesharing-auth-service/token"
@@ -10,13 +11,25 @@ import (
 )
 
 type GRPCAuthServiceClient struct {
-	client proto.AuthService
+	client  proto.AuthService
+	decoder token.Decoder
 }
 
-func NewGRPCAuthServiceClient(c proto.AuthService) *GRPCAuthServiceClient {
-	return &GRPCAuthServiceClient{
-		client: c,
+func NewGRPCAuthServiceClient(c proto.AuthService, publicCert string) (*GRPCAuthServiceClient, error) {
+	publicKey, err := token.LoadCertFromFile(publicCert)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load public certificate: %w", err)
 	}
+
+	dec, err := token.NewRSADecoder(publicKey)
+	if err != nil {
+		return nil, fmt.Errorf("unable to crate rsa decoder: %w", err)
+	}
+
+	return &GRPCAuthServiceClient{
+		client:  c,
+		decoder: dec,
+	}, nil
 }
 
 func marshalUser(user *handlers.User) *proto.User {
@@ -57,7 +70,7 @@ func (c *GRPCAuthServiceClient) Auth(user *handlers.User) (*handlers.Token, erro
 }
 
 func (c *GRPCAuthServiceClient) UserNameByToken(tokenString string) (string, error) {
-	claims, err := token.Decode(tokenString)
+	claims, err := c.decoder.Decode(tokenString)
 	if err != nil {
 		return "", err
 	}

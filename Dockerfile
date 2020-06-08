@@ -11,11 +11,12 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags="-w -s" -o /go/bin/filesharing
 
 FROM scratch
-COPY --from=builder /go/bin/filesharing /go/bin/filesharing
-COPY --from=builder /app/templates/html /go/bin/templates/html
-COPY --from=builder /app/res /go/bin/res
+COPY --from=builder /go/bin/filesharing /app/filesharing
+COPY --from=builder /app/templates/html /app/templates/html
+COPY --from=builder /app/res /app/res
+COPY --from=builder /app/cert_auth/public_key.pem /app/cert/
 
 EXPOSE 8080
 
-WORKDIR /go/bin
+WORKDIR /app/
 ENTRYPOINT ["./filesharing"]

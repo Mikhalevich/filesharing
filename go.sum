@@ -43,6 +43,12 @@ github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200604220729-44a8c8ade3
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200604220729-44a8c8ade31a/go.mod h1:I2vu5uz5V11vcvprXJ6cSd5qYS80xxV66da2AMvJWTw=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200605092621-b5fb7d1bbe88 h1:TN2eW2EsHKQlnEjjLEFguygsrWINO9Ne/gI7DbHOEE0=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200605092621-b5fb7d1bbe88/go.mod h1:/3bXq1M56WNan6jjSyqevbG9ynigm0XBOB3IAs9DRtg=
+github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200607205605-e8989a755ed8 h1:X6hs+RdIjp3HJlJQxaaSd/UriBvbH+f4z7Tvjc8a85U=
+github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200607205605-e8989a755ed8/go.mod h1:/3bXq1M56WNan6jjSyqevbG9ynigm0XBOB3IAs9DRtg=
+github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200608082321-0e121c1ea70b h1:ChBW9jZ/k/IKPTLD4vLhVRo9txfRgyfkjOmP0Ry15gc=
+github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200608082321-0e121c1ea70b/go.mod h1:/3bXq1M56WNan6jjSyqevbG9ynigm0XBOB3IAs9DRtg=
+github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200608084359-580b31d34476 h1:lKnw+gR4nJJeYh88qg0T7UDmHyEJXbDrpnwUYFXO4jQ=
+github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200608084359-580b31d34476/go.mod h1:/3bXq1M56WNan6jjSyqevbG9ynigm0XBOB3IAs9DRtg=
 github.com/Mikhalevich/goauth v0.0.0-20191116123314-5ec373094114 h1:gPj7Hz/G7WJzLrn1Js3NaX9GO+nG7bJmy6pula5Id/c=
 github.com/Mikhalevich/goauth v0.0.0-20191116123314-5ec373094114/go.mod h1:flLFsXZz/777voQFtHe0M+U4IcXT+lIlafAVkQbG/y8=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=

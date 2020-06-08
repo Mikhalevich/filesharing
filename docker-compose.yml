@@ -8,6 +8,7 @@ services:
       FS_HOST: ":8080"
       FS_FILE_SERVICE_NAME: "filesharing.fileservice"
       FS_AUTH_SERVICE_NAME: "filesharing.authservice"
+      FS_PUBLIC_CERT: "/app/cert/public_key.pem"
     depends_on:
     - file_service
     - auth_service
@@ -22,10 +23,13 @@ services:
     volumes:
     - filesharing-file-service-storage:/data/
   auth_service:
-    build: filesharing-auth-service
+    build:
+      context: .
+      dockerfile: ./docker/auth.Dockerfile
     environment:
       AS_SERVICE_NAME: "filesharing.authservice"
       AS_DB_CONNECTION_STRING: "user=postgres password=123456 dbname=filesharing host=dbpg port=5432 sslmode=disable"
+      AS_PRIVATE_CERT: "/app/cert/private_key.pem"
     depends_on:
       - dbpg
   dbpg:
@@ -37,7 +41,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123456
     volumes:
-    - filesharing-db-data:/var/lib/postgresql/data
+    - filesharing-db-data:/var/lib/postgresql/data/
 volumes:
   filesharing-file-service-storage:
   filesharing-db-data:
