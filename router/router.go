@@ -160,18 +160,18 @@ func (r *Router) makeRoutes() {
 			Handler:       http.HandlerFunc(r.h.GetFileHandler),
 		},
 		Route{
-			Pattern:   "/{storage}/{file}/",
-			Methods:   "GET",
-			NeedAuth:  true,
-			StorePath: true,
-			Handler:   http.HandlerFunc(r.h.GetFileHandler),
-		},
-		Route{
 			Pattern:       "/{storage}/permanent/",
 			Methods:       "GET",
 			NeedAuth:      true,
 			PermanentPath: true,
 			Handler:       http.HandlerFunc(r.h.ViewHandler),
+		},
+		Route{
+			Pattern:   "/{storage}/{file}/",
+			Methods:   "GET",
+			NeedAuth:  true,
+			StorePath: true,
+			Handler:   http.HandlerFunc(r.h.GetFileHandler),
 		},
 		Route{
 			Pattern:   "/{storage}/",

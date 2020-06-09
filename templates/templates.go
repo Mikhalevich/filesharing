@@ -86,15 +86,17 @@ type FileInfo struct {
 
 type TemplateView struct {
 	TemplateBase
-	Title        string
-	FileInfoList []FileInfo
+	Title             string
+	NeedPermanentLink bool
+	FileInfoList      []FileInfo
 }
 
-func NewTemplateView(title string, list []FileInfo) *TemplateView {
+func NewTemplateView(title string, needPermanentLink bool, list []FileInfo) *TemplateView {
 	return &TemplateView{
-		TemplateBase: *NewTemplateBase("view.html"),
-		Title:        title,
-		FileInfoList: list,
+		TemplateBase:      *NewTemplateBase("view.html"),
+		Title:             title,
+		NeedPermanentLink: needPermanentLink,
+		FileInfoList:      list,
 	}
 }
 

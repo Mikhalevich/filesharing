@@ -305,7 +305,8 @@ func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		fileInfos = append(fileInfos, *marshalFileInfo(f))
 	}
 
-	viewTemplate := templates.NewTemplateView(Title, fileInfos)
+	viewPermanentLink := !sp.IsPermanent && !h.sc.IsPublic(sp.StorageName)
+	viewTemplate := templates.NewTemplateView(Title, viewPermanentLink, fileInfos)
 
 	err = viewTemplate.Execute(w)
 	if err != nil {

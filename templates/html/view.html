@@ -38,6 +38,12 @@
 									</tr>
 								</thead>
 								<tbody id="rows">
+									{{if .NeedPermanentLink}}
+									<tr>
+										<td>dir</td>
+										<td><a href="permanent">permanent</a></td>
+									</tr>
+									{{end}}
                                     {{range $index, $fileInfo := .FileInfoList}}
                                         <tr id="row_{{$index}}">
                                             <td>{{increment $index}}</td>
