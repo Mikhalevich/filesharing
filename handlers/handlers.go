@@ -208,6 +208,7 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.respondWithError(err, w, "RegisterHandler", "registration error", http.StatusInternalServerError) {
+		renderTemplate = false
 		return
 	}
 
@@ -216,6 +217,7 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	err = h.storage.CreateStorage(userInfo.StorageName, true)
 	if !errors.Is(err, ErrAlreadyExist) &&
 		h.respondWithError(err, w, "RegisterHandler", "unable to create storage", http.StatusInternalServerError) {
+		renderTemplate = false
 		return
 	}
 
@@ -266,6 +268,7 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if h.respondWithError(err, w, "LoginHandler", "authorization error", http.StatusInternalServerError) {
+		renderTemplate = false
 		return
 	}
 
