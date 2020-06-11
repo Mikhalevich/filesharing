@@ -45,7 +45,12 @@ func (c *GRPCAuthServiceClient) CreateUser(user *handlers.User) (*handlers.Token
 		return nil, err
 	}
 
-	if r.GetStatus() != proto.Status_Ok {
+	switch r.GetStatus() {
+	case proto.Status_Ok:
+		// break
+	case proto.Status_AlreadyExist:
+		return nil, handlers.ErrAlreadyExist
+	default:
 		return nil, errors.New("invalid response")
 	}
 
@@ -60,10 +65,16 @@ func (c *GRPCAuthServiceClient) Auth(user *handlers.User) (*handlers.Token, erro
 		return nil, err
 	}
 
-	if r.GetStatus() != proto.Status_Ok {
+	switch r.GetStatus() {
+	case proto.Status_Ok:
+		// break
+	case proto.Status_PwdNotMatch:
+		return nil, handlers.ErrPwdNotMatch
+	case proto.Status_NotExist:
+		return nil, handlers.ErrNotExist
+	default:
 		return nil, errors.New("invalid response")
 	}
-
 	return &handlers.Token{
 		Value: r.GetToken(),
 	}, nil

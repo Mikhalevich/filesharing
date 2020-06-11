@@ -21,6 +21,7 @@ var (
 	// ErrAlreadyExist indicates that storage already exists
 	ErrAlreadyExist = errors.New("alredy exist")
 	ErrNotExist     = errors.New("not exist")
+	ErrPwdNotMatch  = errors.New("password not match")
 	ErrExpired      = errors.New("session is expired")
 )
 
@@ -205,9 +206,7 @@ func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if errors.Is(err, ErrAlreadyExist) {
 		userInfo.AddError("common", "Storage with this name already exists")
 		return
-	}
-
-	if h.respondWithError(err, w, "RegisterHandler", "registration error", http.StatusInternalServerError) {
+	} else if h.respondWithError(err, w, "RegisterHandler", "registration error", http.StatusInternalServerError) {
 		renderTemplate = false
 		return
 	}
@@ -267,6 +266,13 @@ func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		Pwd:  userInfo.Password,
 	})
 
+	if errors.Is(err, ErrNotExist) {
+		userInfo.AddError("name", "No such storage")
+		return
+	} else if errors.Is(err, ErrPwdNotMatch) {
+		userInfo.AddError("password", "Password not match")
+		return
+	}
 	if h.respondWithError(err, w, "LoginHandler", "authorization error", http.StatusInternalServerError) {
 		renderTemplate = false
 		return
