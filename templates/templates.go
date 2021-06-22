@@ -1,29 +1,18 @@
 package templates
 
 import (
+	"embed"
 	"fmt"
 	"html/template"
 	"io"
-	"os"
-	"path"
-	"path/filepath"
 )
 
-func templatePath(name string) string {
-	executable, err := os.Executable()
-	if err != nil {
-		return ""
-	}
-
-	return path.Join(filepath.Dir(executable), "templates/html", name)
-}
-
 var (
+	//go:embed html res
+	content embed.FS
+
 	funcs       = template.FuncMap{"increment": func(i int) int { i++; return i }}
-	pcTemplates = template.Must(template.New("fileSharing").Funcs(funcs).ParseFiles(
-		templatePath("view.html"),
-		templatePath("login.html"),
-		templatePath("register.html")))
+	pcTemplates = template.Must(template.New("fileSharing").Funcs(funcs).ParseFS(content, "*.html"))
 )
 
 type TemplateBase struct {

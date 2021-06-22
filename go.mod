@@ -1,6 +1,6 @@
 module github.com/Mikhalevich/filesharing
 
-go 1.13
+go 1.16
 
 require (
 	github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200611143119-045ec4855f30

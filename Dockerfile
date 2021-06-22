@@ -12,8 +12,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflag
 
 FROM scratch
 COPY --from=builder /go/bin/filesharing /app/filesharing
-COPY --from=builder /app/templates/html /app/templates/html
-COPY --from=builder /app/res /app/res
 COPY --from=builder /app/cert_auth/public_key.pem /app/cert/
 
 EXPOSE 8080
