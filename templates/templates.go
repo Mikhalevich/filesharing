@@ -5,15 +5,23 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 )
 
 var (
-	//go:embed html res
+	//go:embed html
 	content embed.FS
 
+	//go:embed res
+	resources embed.FS
+
 	funcs       = template.FuncMap{"increment": func(i int) int { i++; return i }}
-	pcTemplates = template.Must(template.New("fileSharing").Funcs(funcs).ParseFS(content, "*.html"))
+	pcTemplates = template.Must(template.New("fileSharing").Funcs(funcs).ParseFS(content, "html/*.html"))
 )
+
+func Resources() fs.FS {
+	return resources
+}
 
 type TemplateBase struct {
 	Name   string
