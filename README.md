@@ -1,2 +1,4 @@
 # simple filesharing server
-for starting server just run "docker-compose up" and it will serve according your config.json file parameters
+- init submodules: git submodule update --recursive --init
+- run ./run.sh it will start local file server
+
