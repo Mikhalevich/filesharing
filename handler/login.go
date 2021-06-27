@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Mikhalevich/filesharing/templates"
+	"github.com/Mikhalevich/filesharing/template"
 )
 
 // LoginHandler sign in for the existing storage(user)
 func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	userInfo := templates.NewTemplatePassword()
+	userInfo := template.NewTemplatePassword()
 	renderTemplate := true
 	defer func() {
 		if renderTemplate {

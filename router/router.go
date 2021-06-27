@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 
-	"github.com/Mikhalevich/filesharing/templates"
+	"github.com/Mikhalevich/filesharing/template"
 )
 
 type contextRouterKey string
@@ -103,7 +103,7 @@ func (r *Router) makeRoutes() {
 			Pattern:  "/res/",
 			IsPrefix: true,
 			Methods:  "GET",
-			Handler:  http.FileServer(http.FS(templates.Resources())),
+			Handler:  http.FileServer(http.FS(template.Resources())),
 		},
 		Route{
 			Pattern: "/register/",

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Mikhalevich/filesharing/templates"
+	"github.com/Mikhalevich/filesharing/template"
 )
 
 // ViewHandler executes view.html template for view files in requested folder
@@ -24,13 +24,13 @@ func (h *Handler) ViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fileInfos := make([]templates.FileInfo, 0, len(files))
+	fileInfos := make([]template.FileInfo, 0, len(files))
 	for _, f := range files {
 		fileInfos = append(fileInfos, *marshalFileInfo(f))
 	}
 
 	viewPermanentLink := !sp.IsPermanent && !h.sc.IsPublic(sp.StorageName)
-	viewTemplate := templates.NewTemplateView(Title, viewPermanentLink, fileInfos)
+	viewTemplate := template.NewTemplateView(Title, viewPermanentLink, fileInfos)
 
 	err = viewTemplate.Execute(w)
 	if err != nil {

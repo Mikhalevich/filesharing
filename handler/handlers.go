@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Mikhalevich/filesharing/templates"
+	"github.com/Mikhalevich/filesharing/template"
 	"github.com/sirupsen/logrus"
 )
 
@@ -127,8 +127,8 @@ func (h *Handler) requestParameters(r *http.Request, withFile bool) (storagePara
 	}, nil
 }
 
-func marshalFileInfo(file *File) *templates.FileInfo {
-	return &templates.FileInfo{
+func marshalFileInfo(file *File) *template.FileInfo {
+	return &template.FileInfo{
 		Name:    file.Name,
 		Size:    file.Size,
 		ModTime: file.ModTime,

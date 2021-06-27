@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Mikhalevich/filesharing/templates"
+	"github.com/Mikhalevich/filesharing/template"
 )
 
 // RegisterHandler register a new storage(user)
 func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	userInfo := templates.NewTemplateRegister()
+	userInfo := template.NewTemplateRegister()
 	renderTemplate := true
 
 	defer func() {
