@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/Mikhalevich/filesharing-file-service/proto"
-	"github.com/Mikhalevich/filesharing/handlers"
+	"github.com/Mikhalevich/filesharing/handler"
 )
 
 // GRPCFileServiceClient it's just wrapper around grpc FileServiceClient
@@ -21,8 +21,8 @@ func NewGRPCFileServiceClient(c proto.FileService) *GRPCFileServiceClient {
 	}
 }
 
-func unmarshalFile(file *proto.File) *handlers.File {
-	return &handlers.File{
+func unmarshalFile(file *proto.File) *handler.File {
+	return &handler.File{
 		Name:    file.GetName(),
 		Size:    file.GetSize(),
 		ModTime: file.GetModTime(),
@@ -30,14 +30,14 @@ func unmarshalFile(file *proto.File) *handlers.File {
 }
 
 // Files return files from storage
-func (c *GRPCFileServiceClient) Files(storage string, isPermanent bool) ([]*handlers.File, error) {
+func (c *GRPCFileServiceClient) Files(storage string, isPermanent bool) ([]*handler.File, error) {
 	r, err := c.client.List(context.Background(), &proto.ListRequest{Storage: storage, IsPermanent: isPermanent})
 	if err != nil {
 		return nil, err
 	}
 
 	grpcFiles := r.GetFiles()
-	files := make([]*handlers.File, 0, len(grpcFiles))
+	files := make([]*handler.File, 0, len(grpcFiles))
 	for _, file := range grpcFiles {
 		files = append(files, unmarshalFile(file))
 	}
@@ -56,7 +56,7 @@ func (c *GRPCFileServiceClient) CreateStorage(storage string, withPermanent bool
 	}
 
 	if r.GetStatus() == proto.StorageStatus_AlreadyExist {
-		return handlers.ErrAlreadyExist
+		return handler.ErrAlreadyExist
 	}
 
 	return nil
@@ -102,7 +102,7 @@ func (c *GRPCFileServiceClient) Get(storage string, isPermanent bool, fileName s
 }
 
 // Upload upload file to storage
-func (c *GRPCFileServiceClient) Upload(storage string, isPermanent bool, fileName string, r io.Reader) (*handlers.File, error) {
+func (c *GRPCFileServiceClient) Upload(storage string, isPermanent bool, fileName string, r io.Reader) (*handler.File, error) {
 	stream, err := c.client.UploadFile(context.Background())
 	if err != nil {
 		return nil, err

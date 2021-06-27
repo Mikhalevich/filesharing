@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Mikhalevich/filesharing/handlers"
+	"github.com/Mikhalevich/filesharing/handler"
 )
 
 type Namer interface {
@@ -23,22 +23,22 @@ func NewCookieSession(n Namer, period int64) *CookieSession {
 	}
 }
 
-func (cs *CookieSession) GetToken(r *http.Request) (*handlers.Token, error) {
+func (cs *CookieSession) GetToken(r *http.Request) (*handler.Token, error) {
 	name := cs.namer.Name(r)
 	for _, cook := range r.Cookies() {
 		if cook.Name != name {
 			continue
 		}
 
-		return &handlers.Token{
+		return &handler.Token{
 			Value: cook.Value,
 		}, nil
 	}
 
-	return nil, handlers.ErrNotExist
+	return nil, handler.ErrNotExist
 }
 
-func (cs *CookieSession) SetToken(w http.ResponseWriter, token *handlers.Token, name string) {
+func (cs *CookieSession) SetToken(w http.ResponseWriter, token *handler.Token, name string) {
 	cookie := http.Cookie{Name: name, Value: token.Value, Path: "/", Expires: time.Now().Add(time.Duration(cs.expirePeriod) * time.Second), HttpOnly: true}
 	http.SetCookie(w, &cookie)
 }

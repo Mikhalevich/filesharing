@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 )
 
 // JSONViewHandler it's spike for duplo client
-func (h *Handlers) JSONViewHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) JSONViewHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r, false)
 	if h.respondWithError(err, w, "JSONViewHandler", "invalid parameters", http.StatusInternalServerError) {
 		return

@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"errors"
@@ -70,8 +70,8 @@ type Storager interface {
 	IsStorageExists(storage string) bool
 }
 
-// Handlers represents gateway handlers
-type Handlers struct {
+// Handler represents gateway handler
+type Handler struct {
 	sc      StorageChecker
 	session Sessioner
 	auth    Authentificator
@@ -79,9 +79,9 @@ type Handlers struct {
 	logger  *logrus.Logger
 }
 
-// NewHandlers constructor for Handlers
-func NewHandlers(checker StorageChecker, ses Sessioner, a Authentificator, s Storager, l *logrus.Logger) *Handlers {
-	return &Handlers{
+// NewHandler constructor for Handler
+func NewHandler(checker StorageChecker, ses Sessioner, a Authentificator, s Storager, l *logrus.Logger) *Handler {
+	return &Handler{
 		sc:      checker,
 		session: ses,
 		auth:    a,
@@ -90,7 +90,7 @@ func NewHandlers(checker StorageChecker, ses Sessioner, a Authentificator, s Sto
 	}
 }
 
-func (h *Handlers) respondWithError(err error, w http.ResponseWriter, context, description string, httpStatusCode int) bool {
+func (h *Handler) respondWithError(err error, w http.ResponseWriter, context, description string, httpStatusCode int) bool {
 	if err != nil {
 		h.logger.Error(fmt.Errorf("[%s] %s: %w", context, description, err))
 		http.Error(w, description, httpStatusCode)
@@ -106,7 +106,7 @@ type storageParameters struct {
 	FileName    string
 }
 
-func (h *Handlers) requestParameters(r *http.Request, withFile bool) (storageParameters, error) {
+func (h *Handler) requestParameters(r *http.Request, withFile bool) (storageParameters, error) {
 	storage := h.sc.Name(r)
 	if storage == "" {
 		return storageParameters{}, errors.New("request storage is empty")
@@ -135,7 +135,7 @@ func marshalFileInfo(file *File) *templates.FileInfo {
 	}
 }
 
-func (h *Handlers) respondWithInvalidMethodError(m string, w http.ResponseWriter) bool {
+func (h *Handler) respondWithInvalidMethodError(m string, w http.ResponseWriter) bool {
 	if m != http.MethodPost {
 		h.logger.Errorf("invalid method %s", m)
 		http.Error(w, "only POST method allowed", http.StatusMethodNotAllowed)
@@ -145,7 +145,7 @@ func (h *Handlers) respondWithInvalidMethodError(m string, w http.ResponseWriter
 }
 
 // RecoverMiddleware middlewere recover for undefined panic error
-func (h *Handlers) RecoverMiddleware(next http.Handler) http.Handler {
+func (h *Handler) RecoverMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if e, ok := recover().(error); ok {
@@ -158,7 +158,7 @@ func (h *Handlers) RecoverMiddleware(next http.Handler) http.Handler {
 }
 
 // CheckAuthMiddleware middlewere for auth
-func (h *Handlers) CheckAuthMiddleware(next http.Handler) http.Handler {
+func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		storageName := h.sc.Name(r)
 		var err error
@@ -207,7 +207,7 @@ func (h *Handlers) CheckAuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (h *Handlers) createIfNotExist(name string, isPermanent bool) error {
+func (h *Handler) createIfNotExist(name string, isPermanent bool) error {
 	err := h.storage.CreateStorage(name, isPermanent)
 	if errors.Is(err, ErrAlreadyExist) {
 		return nil

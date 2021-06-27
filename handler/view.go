@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 )
 
 // ViewHandler executes view.html template for view files in requested folder
-func (h *Handlers) ViewHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ViewHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r, false)
 	if h.respondWithError(err, w, "ViewHandler", "invalid parameters", http.StatusInternalServerError) {
 		return

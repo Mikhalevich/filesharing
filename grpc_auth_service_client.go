@@ -7,7 +7,7 @@ import (
 
 	"github.com/Mikhalevich/filesharing-auth-service/proto"
 	"github.com/Mikhalevich/filesharing-auth-service/token"
-	"github.com/Mikhalevich/filesharing/handlers"
+	"github.com/Mikhalevich/filesharing/handler"
 )
 
 type GRPCAuthServiceClient struct {
@@ -32,14 +32,14 @@ func NewGRPCAuthServiceClient(c proto.AuthService, publicCert string) (*GRPCAuth
 	}, nil
 }
 
-func marshalUser(user *handlers.User) *proto.User {
+func marshalUser(user *handler.User) *proto.User {
 	return &proto.User{
 		Name:     user.Name,
 		Password: user.Pwd,
 	}
 }
 
-func (c *GRPCAuthServiceClient) CreateUser(user *handlers.User) (*handlers.Token, error) {
+func (c *GRPCAuthServiceClient) CreateUser(user *handler.User) (*handler.Token, error) {
 	r, err := c.client.Create(context.Background(), marshalUser(user))
 	if err != nil {
 		return nil, err
@@ -49,17 +49,17 @@ func (c *GRPCAuthServiceClient) CreateUser(user *handlers.User) (*handlers.Token
 	case proto.Status_Ok:
 		// break
 	case proto.Status_AlreadyExist:
-		return nil, handlers.ErrAlreadyExist
+		return nil, handler.ErrAlreadyExist
 	default:
 		return nil, errors.New("invalid response")
 	}
 
-	return &handlers.Token{
+	return &handler.Token{
 		Value: r.GetToken(),
 	}, nil
 }
 
-func (c *GRPCAuthServiceClient) Auth(user *handlers.User) (*handlers.Token, error) {
+func (c *GRPCAuthServiceClient) Auth(user *handler.User) (*handler.Token, error) {
 	r, err := c.client.Auth(context.Background(), marshalUser(user))
 	if err != nil {
 		return nil, err
@@ -69,13 +69,13 @@ func (c *GRPCAuthServiceClient) Auth(user *handlers.User) (*handlers.Token, erro
 	case proto.Status_Ok:
 		// break
 	case proto.Status_PwdNotMatch:
-		return nil, handlers.ErrPwdNotMatch
+		return nil, handler.ErrPwdNotMatch
 	case proto.Status_NotExist:
-		return nil, handlers.ErrNotExist
+		return nil, handler.ErrNotExist
 	default:
 		return nil, errors.New("invalid response")
 	}
-	return &handlers.Token{
+	return &handler.Token{
 		Value: r.GetToken(),
 	}, nil
 }

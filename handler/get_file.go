@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 )
 
 // GetFileHandler get single file from storage
-func (h *Handlers) GetFileHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetFileHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r, true)
 	if h.respondWithError(err, w, "GetFileHandler", "invalid parameters", http.StatusInternalServerError) {
 		return

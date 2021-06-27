@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 )
 
 // RemoveHandler removes current file from storage
-func (h *Handlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	if h.respondWithInvalidMethodError(r.Method, w) {
 		return
 	}

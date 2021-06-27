@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 )
 
 // ShareTextHandler crate file from share text request
-func (h *Handlers) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 	if h.respondWithInvalidMethodError(r.Method, w) {
 		return
 	}

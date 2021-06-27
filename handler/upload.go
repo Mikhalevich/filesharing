@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 )
 
 // UploadHandler upload file to storage
-func (h *Handlers) UploadHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	if h.respondWithInvalidMethodError(r.Method, w) {
 		return
 	}

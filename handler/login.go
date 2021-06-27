@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 )
 
 // LoginHandler sign in for the existing storage(user)
-func (h *Handlers) LoginHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	userInfo := templates.NewTemplatePassword()
 	renderTemplate := true
 	defer func() {

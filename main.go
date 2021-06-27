@@ -9,7 +9,7 @@ import (
 
 	apb "github.com/Mikhalevich/filesharing-auth-service/proto"
 	fspb "github.com/Mikhalevich/filesharing-file-service/proto"
-	"github.com/Mikhalevich/filesharing/handlers"
+	"github.com/Mikhalevich/filesharing/handler"
 	"github.com/Mikhalevich/filesharing/router"
 	"github.com/micro/go-micro/v2"
 	"github.com/sirupsen/logrus"
@@ -87,7 +87,7 @@ func main() {
 		return
 	}
 
-	h := handlers.NewHandlers(storageChecker, cookieSession, authService, NewGRPCFileServiceClient(fsClient), logger)
+	h := handler.NewHandler(storageChecker, cookieSession, authService, NewGRPCFileServiceClient(fsClient), logger)
 	r := router.NewRouter(true, h, logger)
 
 	logger.Infof("Running params = %v", params)

@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"io"
@@ -6,7 +6,7 @@ import (
 )
 
 // IndexHTMLHandler process index.html file
-func (h *Handlers) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r, false)
 	if h.respondWithError(err, w, "IndexHTMLHandler", "invalid parameters", http.StatusInternalServerError) {
 		return

@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 )
 
 // RegisterHandler register a new storage(user)
-func (h *Handlers) RegisterHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	userInfo := templates.NewTemplateRegister()
 	renderTemplate := true
 
