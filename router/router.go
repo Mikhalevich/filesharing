@@ -19,9 +19,7 @@ const (
 )
 
 type PublicStorages struct {
-	rootPath      string
-	permanentPath string
-	s             map[string]bool
+	s map[string]bool
 }
 
 func (p *PublicStorages) Name(r *http.Request) string {
@@ -30,10 +28,7 @@ func (p *PublicStorages) Name(r *http.Request) string {
 
 func (p *PublicStorages) IsPermanent(r *http.Request) bool {
 	val := r.Context().Value(contextStorageIsPermanent)
-	if val != nil {
-		return true
-	}
-	return false
+	return val != nil
 }
 
 func (p *PublicStorages) FileName(r *http.Request) string {
@@ -92,132 +87,132 @@ func NewRouter(ea bool, handl handler, l *logrus.Logger) *Router {
 
 func (r *Router) makeRoutes() {
 	r.routes = []Route{
-		Route{
+		{
 			Pattern: "/",
 			Methods: "GET",
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				http.Redirect(w, r, "/common/", http.StatusMovedPermanently)
 			}),
 		},
-		Route{
+		{
 			Pattern:  "/res/",
 			IsPrefix: true,
 			Methods:  "GET",
 			Handler:  http.FileServer(http.FS(template.Resources())),
 		},
-		Route{
+		{
 			Pattern: "/register/",
 			Methods: "GET,POST",
 			Handler: http.HandlerFunc(r.h.RegisterHandler),
 		},
-		Route{
+		{
 			Pattern:   "/login/{storage}/",
 			Methods:   "GET,POST",
 			StorePath: true,
 			Handler:   http.HandlerFunc(r.h.LoginHandler),
 		},
-		Route{
+		{
 			Pattern:       "/api/{storage}/permanent/{file}/",
 			Methods:       "GET",
 			PermanentPath: true,
 			Handler:       http.HandlerFunc(r.h.GetFileHandler),
 		},
-		Route{
+		{
 			Pattern:   "/api/{storage}/{file}/",
 			Methods:   "GET",
 			StorePath: true,
 			Handler:   http.HandlerFunc(r.h.GetFileHandler),
 		},
-		Route{
+		{
 			Pattern:       "/api/{storage}/permanent/",
 			Methods:       "GET",
 			PermanentPath: true,
 			Handler:       http.HandlerFunc(r.h.JSONViewHandler),
 		},
-		Route{
+		{
 			Pattern:   "/api/{storage}/",
 			Methods:   "GET",
 			StorePath: true,
 			Handler:   http.HandlerFunc(r.h.JSONViewHandler),
 		},
-		Route{
+		{
 			Pattern:   "/{storage}/index.html",
 			Methods:   "GET",
 			NeedAuth:  true,
 			StorePath: true,
 			Handler:   http.HandlerFunc(r.h.IndexHTMLHandler),
 		},
-		Route{
+		{
 			Pattern:       "/{storage}/permanent/index.html",
 			Methods:       "GET",
 			NeedAuth:      true,
 			PermanentPath: true,
 			Handler:       http.HandlerFunc(r.h.IndexHTMLHandler),
 		},
-		Route{
+		{
 			Pattern:       "/{storage}/permanent/{file}/",
 			Methods:       "GET",
 			NeedAuth:      true,
 			PermanentPath: true,
 			Handler:       http.HandlerFunc(r.h.GetFileHandler),
 		},
-		Route{
+		{
 			Pattern:       "/{storage}/permanent/",
 			Methods:       "GET",
 			NeedAuth:      true,
 			PermanentPath: true,
 			Handler:       http.HandlerFunc(r.h.ViewHandler),
 		},
-		Route{
+		{
 			Pattern:   "/{storage}/{file}/",
 			Methods:   "GET",
 			NeedAuth:  true,
 			StorePath: true,
 			Handler:   http.HandlerFunc(r.h.GetFileHandler),
 		},
-		Route{
+		{
 			Pattern:   "/{storage}/",
 			Methods:   "GET",
 			NeedAuth:  true,
 			StorePath: true,
 			Handler:   http.HandlerFunc(r.h.ViewHandler),
 		},
-		Route{
+		{
 			Pattern:   "/{storage}/upload/",
 			Methods:   "POST",
 			NeedAuth:  true,
 			StorePath: true,
 			Handler:   http.HandlerFunc(r.h.UploadHandler),
 		},
-		Route{
+		{
 			Pattern:       "/{storage}/permanent/upload/",
 			Methods:       "POST",
 			NeedAuth:      true,
 			PermanentPath: true,
 			Handler:       http.HandlerFunc(r.h.UploadHandler),
 		},
-		Route{
+		{
 			Pattern:   "/{storage}/remove/",
 			Methods:   "POST",
 			NeedAuth:  true,
 			StorePath: true,
 			Handler:   http.HandlerFunc(r.h.RemoveHandler),
 		},
-		Route{
+		{
 			Pattern:       "/{storage}/permanent/remove/",
 			Methods:       "POST",
 			NeedAuth:      true,
 			PermanentPath: true,
 			Handler:       http.HandlerFunc(r.h.RemoveHandler),
 		},
-		Route{
+		{
 			Pattern:   "/{storage}/shareText/",
 			Methods:   "POST",
 			NeedAuth:  true,
 			StorePath: true,
 			Handler:   http.HandlerFunc(r.h.ShareTextHandler),
 		},
-		Route{
+		{
 			Pattern:       "/{storage}/permanent/shareText/",
 			Methods:       "POST",
 			NeedAuth:      true,
