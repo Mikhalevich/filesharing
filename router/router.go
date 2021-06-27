@@ -71,8 +71,8 @@ type handler interface {
 	RemoveHandler(w http.ResponseWriter, r *http.Request)
 	GetFileHandler(w http.ResponseWriter, r *http.Request)
 	ShareTextHandler(w http.ResponseWriter, r *http.Request)
-	CheckAuth(next http.Handler) http.Handler
-	RecoverHandler(next http.Handler) http.Handler
+	CheckAuthMiddleware(next http.Handler) http.Handler
+	RecoverMiddleware(next http.Handler) http.Handler
 }
 
 type Router struct {
@@ -262,14 +262,14 @@ func (r *Router) Handler() http.Handler {
 
 		handler := route.Handler
 		if r.enableAuth && route.NeedAuth {
-			handler = r.h.CheckAuth(handler)
+			handler = r.h.CheckAuthMiddleware(handler)
 		}
 
 		if route.StorePath || route.PermanentPath {
 			handler = r.storeName(route.PermanentPath, handler)
 		}
 
-		handler = r.h.RecoverHandler(handler)
+		handler = r.h.RecoverMiddleware(handler)
 
 		muxRoute.Handler(handler)
 	}
