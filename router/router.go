@@ -67,6 +67,7 @@ type handler interface {
 	GetFileHandler(w http.ResponseWriter, r *http.Request)
 	ShareTextHandler(w http.ResponseWriter, r *http.Request)
 	CheckAuthMiddleware(next http.Handler) http.Handler
+	CreateStorageMiddleware(next http.Handler) http.Handler
 	RecoverMiddleware(next http.Handler) http.Handler
 }
 
@@ -259,6 +260,8 @@ func (r *Router) Handler() http.Handler {
 		if r.enableAuth && route.NeedAuth {
 			handler = r.h.CheckAuthMiddleware(handler)
 		}
+
+		handler = r.h.CreateStorageMiddleware(handler)
 
 		if route.StorePath || route.PermanentPath {
 			handler = r.storeName(route.PermanentPath, handler)

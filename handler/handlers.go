@@ -170,10 +170,6 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		if h.sc.IsPublic(storageName) {
-			err = h.createIfNotExist(storageName, false)
-			if h.respondWithError(err, w, "CheckAuth", "unable to create public storage", http.StatusInternalServerError) {
-				return
-			}
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -198,8 +194,15 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		err = h.createIfNotExist(storageName, true)
-		if h.respondWithError(err, w, "CheckAuth", "unable to create storage", http.StatusInternalServerError) {
+		next.ServeHTTP(w, r)
+	})
+}
+
+// CreateStorageMiddleware middleware check storage for existence
+func (h *Handler) CreateStorageMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		err := h.createIfNotExist(h.sc.Name(r), true)
+		if h.respondWithError(err, w, "CreateStorageMiddleware", "unable to create storage", http.StatusInternalServerError) {
 			return
 		}
 
