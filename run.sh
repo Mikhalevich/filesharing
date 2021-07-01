@@ -3,9 +3,9 @@
 SCRIPT_DIR=$(dirname "$0")
 pushd $SCRIPT_DIR
 
-if [ ! -f "cert_auth/private_key.pem" ] || [ ! -f "cert_auth/public_key.pem" ]
+if [ ! -f "filesharing-auth-service/token/cert/private_key.pem" ] || [ ! -f "filesharing-auth-service/token/cert/public_key.pem" ]
 then
-    pushd $SCRIPT_DIR/cert_auth
+    pushd $SCRIPT_DIR/filesharing-auth-service/token/cert
     ./generate.sh
     popd
 fi
