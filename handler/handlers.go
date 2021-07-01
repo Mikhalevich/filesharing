@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/Mikhalevich/filesharing/ctxinfo"
 	"github.com/Mikhalevich/filesharing/template"
 	"github.com/sirupsen/logrus"
 )
@@ -187,6 +188,8 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 			http.Redirect(w, r, fmt.Sprintf("/login/%s", storageName), http.StatusFound)
 			return
 		}
+
+		r = r.WithContext(ctxinfo.WithUserName(r.Context(), user))
 
 		if user != storageName {
 			h.logger.Error(fmt.Errorf("[CheckAuth] invalid user user = %s, storage = %s", user, storageName))
