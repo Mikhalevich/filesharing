@@ -3,7 +3,7 @@ module github.com/Mikhalevich/filesharing
 go 1.16
 
 require (
-	github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210701185336-8ea1b063f642
+	github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210701201505-65255c855e18
 	github.com/Mikhalevich/filesharing-file-service v0.0.0-20200608141224-d917a27b31c7
 	github.com/coreos/etcd v3.3.22+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
