@@ -8,7 +8,6 @@ services:
       FS_HOST: ":8080"
       FS_FILE_SERVICE_NAME: "filesharing.fileservice"
       FS_AUTH_SERVICE_NAME: "filesharing.authservice"
-      FS_PUBLIC_CERT: "/app/cert/public_key.pem"
       FS_SESSION_EXPIRE_PERIOD_SEC: "2592000"
     depends_on:
     - file_service
@@ -24,13 +23,10 @@ services:
     volumes:
     - filesharing-file-service-storage:/data/
   auth_service:
-    build:
-      context: .
-      dockerfile: ./docker/auth.Dockerfile
+    build: filesharing-auth-service
     environment:
       AS_SERVICE_NAME: "filesharing.authservice"
       AS_DB_CONNECTION_STRING: "user=postgres password=123456 dbname=filesharing host=dbpg port=5432 sslmode=disable"
-      AS_PRIVATE_CERT: "/app/cert/private_key.pem"
       AS_TOKEN_EXPIRE_PERIOD_SEC: "2592000"
     depends_on:
       - dbpg
