@@ -20,7 +20,6 @@ type params struct {
 	Host                     string
 	FileServiceName          string
 	AuthServiceName          string
-	AuthPublicCert           string
 	SessionExpirePeriodInSec int
 }
 
@@ -40,11 +39,6 @@ func loadParams() (*params, error) {
 	p.AuthServiceName = os.Getenv("FS_AUTH_SERVICE_NAME")
 	if p.AuthServiceName == "" {
 		return nil, errors.New("auth service name is empty, please specify FS_AUTH_SERVICE_NAME variable")
-	}
-
-	p.AuthPublicCert = os.Getenv("FS_PUBLIC_CERT")
-	if p.AuthPublicCert == "" {
-		return nil, errors.New("auth public cert is empty, please specify FS_PUBLIC_CERT variable")
 	}
 
 	p.SessionExpirePeriodInSec = 60 * 60 * 24
@@ -81,7 +75,7 @@ func main() {
 	fsClient := fspb.NewFileService(params.FileServiceName, microService.Client())
 	authClient := apb.NewAuthService(params.AuthServiceName, microService.Client())
 
-	authService, err := wrapper.NewGRPCAuthServiceClient(authClient, params.AuthPublicCert)
+	authService, err := wrapper.NewGRPCAuthServiceClient(authClient)
 	if err != nil {
 		logger.Errorln(fmt.Errorf("creating auth service client error: %w", err))
 		return

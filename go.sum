@@ -36,6 +36,8 @@ github.com/Microsoft/hcsshim v0.8.7-0.20191101173118-65519b62243c/go.mod h1:7xhj
 github.com/Mikhalevich/argparser v0.0.0-20190906102120-0fc64fc3e1a2/go.mod h1:IJtu+uzLoNwPLGEHYTibKyo9ZxmjjkAKmuk4BAvLKEs=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200611143119-045ec4855f30 h1:qIhvQfNuL1IQE6TsI6IFcMDI1MzewrqGsFP+Deqp1QM=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200611143119-045ec4855f30/go.mod h1:/3bXq1M56WNan6jjSyqevbG9ynigm0XBOB3IAs9DRtg=
+github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210701185336-8ea1b063f642 h1:ad1CaJ+uEHrc8PxaMH10j2cJ95nAm17XCvIFTRObBBY=
+github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210701185336-8ea1b063f642/go.mod h1:Z9oRwe5j/1F5ih4EM+C5A/U8BK3oWHDrw3ziiUaHzDg=
 github.com/Mikhalevich/filesharing-file-service v0.0.0-20200608141224-d917a27b31c7 h1:xsU/HyMmKrLtxVrPtPI7n56jKxmz+pju5+uqpd4IdyI=
 github.com/Mikhalevich/filesharing-file-service v0.0.0-20200608141224-d917a27b31c7/go.mod h1:N9K2lbhB/1vLYtMptIT57PbPMaaeTjBoRm8pIdqhy1A=
 github.com/Mikhalevich/goauth v0.0.0-20191116123314-5ec373094114/go.mod h1:flLFsXZz/777voQFtHe0M+U4IcXT+lIlafAVkQbG/y8=
@@ -311,6 +313,7 @@ github.com/labbsr0x/goh v1.0.1/go.mod h1:8K2UhVoaWXcCU7Lxoa2omWnC8gyW8px7/lmO61c
 github.com/leodido/go-urn v1.1.0/go.mod h1:+cyI34gQWZcE1eQU7NVgKkkzdXDQHr1dBMtdAPozLkw=
 github.com/leodido/go-urn v1.2.0/go.mod h1:+8+nEpDfqqsY+g338gtMEUOtuK+4dEMhiQEgxpxOKII=
 github.com/lib/pq v1.2.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
+github.com/lib/pq v1.3.0 h1:/qkRGz8zljWiDcFvgpwUpwIAPu3r07TDvs3Rws+o/pU=
 github.com/lib/pq v1.3.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/linode/linodego v0.10.0/go.mod h1:cziNP7pbvE3mXIPneHj0oRY8L1WtGEIKlZ8LANE4eXA=
 github.com/liquidweb/liquidweb-go v1.6.0/go.mod h1:UDcVnAMDkZxpw4Y7NOHkqoeiGacVLEIG/i5J9cyixzQ=

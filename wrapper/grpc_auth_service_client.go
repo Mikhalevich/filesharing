@@ -15,13 +15,8 @@ type GRPCAuthServiceClient struct {
 	decoder token.Decoder
 }
 
-func NewGRPCAuthServiceClient(c proto.AuthService, publicCert string) (*GRPCAuthServiceClient, error) {
-	publicKey, err := token.LoadCertFromFile(publicCert)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load public certificate: %w", err)
-	}
-
-	dec, err := token.NewRSADecoder(publicKey)
+func NewGRPCAuthServiceClient(c proto.AuthService) (*GRPCAuthServiceClient, error) {
+	dec, err := token.NewRSADecoder()
 	if err != nil {
 		return nil, fmt.Errorf("unable to crate rsa decoder: %w", err)
 	}

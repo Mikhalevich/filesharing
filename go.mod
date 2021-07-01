@@ -3,14 +3,16 @@ module github.com/Mikhalevich/filesharing
 go 1.16
 
 require (
-	github.com/Mikhalevich/filesharing-auth-service v0.0.0-20200611143119-045ec4855f30
+	github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210701185336-8ea1b063f642
 	github.com/Mikhalevich/filesharing-file-service v0.0.0-20200608141224-d917a27b31c7
+	github.com/Mikhalevich/goauth v0.0.0-20191116123314-5ec373094114 // indirect
 	github.com/coreos/etcd v3.3.22+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/gorilla/mux v1.7.3
 	github.com/micro/go-micro/v2 v2.8.0
+	github.com/micro/micro/v2 v2.8.1-0.20200531222451-87f733d38ee7 // indirect
 	github.com/miekg/dns v1.1.29 // indirect
 	github.com/nats-io/jwt v1.0.1 // indirect
 	github.com/nats-io/nats.go v1.10.0 // indirect
