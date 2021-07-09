@@ -37,6 +37,8 @@ github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210701185336-8ea1b063f6
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210701185336-8ea1b063f642/go.mod h1:Z9oRwe5j/1F5ih4EM+C5A/U8BK3oWHDrw3ziiUaHzDg=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210701201505-65255c855e18 h1:26fk3GFZUPFMChkPBAUwRRGm8Ag+a9+dqi9sIGboEL8=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210701201505-65255c855e18/go.mod h1:Z9oRwe5j/1F5ih4EM+C5A/U8BK3oWHDrw3ziiUaHzDg=
+github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210709002219-56fb9fca49e8 h1:AQt9M7yq9cziCqAOrXiTbu+/j/aoN57ZU3UMg4xLwiE=
+github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210709002219-56fb9fca49e8/go.mod h1:Z9oRwe5j/1F5ih4EM+C5A/U8BK3oWHDrw3ziiUaHzDg=
 github.com/Mikhalevich/filesharing-file-service v0.0.0-20200608141224-d917a27b31c7 h1:xsU/HyMmKrLtxVrPtPI7n56jKxmz+pju5+uqpd4IdyI=
 github.com/Mikhalevich/filesharing-file-service v0.0.0-20200608141224-d917a27b31c7/go.mod h1:N9K2lbhB/1vLYtMptIT57PbPMaaeTjBoRm8pIdqhy1A=
 github.com/OpenDNS/vegadns2client v0.0.0-20180418235048-a3fa4a771d87/go.mod h1:iGLljf5n9GjT6kc0HBvyI1nOKnGQbNB66VzSNbK5iks=
