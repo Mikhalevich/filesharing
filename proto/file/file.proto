@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package file;
+
 option go_package = "./;file";
 
 service FileService {
