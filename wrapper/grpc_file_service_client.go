@@ -5,23 +5,23 @@ import (
 	"errors"
 	"io"
 
-	"github.com/Mikhalevich/filesharing-file-service/proto"
 	"github.com/Mikhalevich/filesharing/handler"
+	"github.com/Mikhalevich/filesharing/proto/file"
 )
 
 // GRPCFileServiceClient it's just wrapper around grpc FileServiceClient
 type GRPCFileServiceClient struct {
-	client proto.FileService
+	client file.FileService
 }
 
 // NewGRPCFileServiceClient create new client
-func NewGRPCFileServiceClient(c proto.FileService) *GRPCFileServiceClient {
+func NewGRPCFileServiceClient(c file.FileService) *GRPCFileServiceClient {
 	return &GRPCFileServiceClient{
 		client: c,
 	}
 }
 
-func unmarshalFile(file *proto.File) *handler.File {
+func unmarshalFile(file *file.File) *handler.File {
 	return &handler.File{
 		Name:    file.GetName(),
 		Size:    file.GetSize(),
@@ -31,7 +31,7 @@ func unmarshalFile(file *proto.File) *handler.File {
 
 // Files return files from storage
 func (c *GRPCFileServiceClient) Files(storage string, isPermanent bool) ([]*handler.File, error) {
-	r, err := c.client.List(context.Background(), &proto.ListRequest{Storage: storage, IsPermanent: isPermanent})
+	r, err := c.client.List(context.Background(), &file.ListRequest{Storage: storage, IsPermanent: isPermanent})
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (c *GRPCFileServiceClient) Files(storage string, isPermanent bool) ([]*hand
 
 // CreateStorage just create storage with specified storage name and permanent folder
 func (c *GRPCFileServiceClient) CreateStorage(storage string, withPermanent bool) error {
-	r, err := c.client.CreateStorage(context.Background(), &proto.CreateStorageRequest{
+	r, err := c.client.CreateStorage(context.Background(), &file.CreateStorageRequest{
 		Name:          storage,
 		WithPermanent: withPermanent,
 	})
@@ -55,7 +55,7 @@ func (c *GRPCFileServiceClient) CreateStorage(storage string, withPermanent bool
 		return err
 	}
 
-	if r.GetStatus() == proto.StorageStatus_AlreadyExist {
+	if r.GetStatus() == file.StorageStatus_AlreadyExist {
 		return handler.ErrAlreadyExist
 	}
 
@@ -64,7 +64,7 @@ func (c *GRPCFileServiceClient) CreateStorage(storage string, withPermanent bool
 
 // Remove remove file with fileName from storage
 func (c *GRPCFileServiceClient) Remove(storage string, isPermanent bool, fileName string) error {
-	_, err := c.client.RemoveFile(context.Background(), &proto.FileRequest{
+	_, err := c.client.RemoveFile(context.Background(), &file.FileRequest{
 		Storage:     storage,
 		IsPermanent: isPermanent,
 		FileName:    fileName,
@@ -75,7 +75,7 @@ func (c *GRPCFileServiceClient) Remove(storage string, isPermanent bool, fileNam
 
 // Get download file from storage
 func (c *GRPCFileServiceClient) Get(storage string, isPermanent bool, fileName string, w io.Writer) error {
-	stream, err := c.client.GetFile(context.Background(), &proto.FileRequest{
+	stream, err := c.client.GetFile(context.Background(), &file.FileRequest{
 		Storage:     storage,
 		IsPermanent: isPermanent,
 		FileName:    fileName,
@@ -108,9 +108,9 @@ func (c *GRPCFileServiceClient) Upload(storage string, isPermanent bool, fileNam
 		return nil, err
 	}
 
-	stream.Send(&proto.FileUploadRequest{
-		FileChunk: &proto.FileUploadRequest_Metadata{
-			Metadata: &proto.FileRequest{
+	stream.Send(&file.FileUploadRequest{
+		FileChunk: &file.FileUploadRequest_Metadata{
+			Metadata: &file.FileRequest{
 				Storage:     storage,
 				IsPermanent: isPermanent,
 				FileName:    fileName,
@@ -122,8 +122,8 @@ func (c *GRPCFileServiceClient) Upload(storage string, isPermanent bool, fileNam
 	for {
 		n, err := r.Read(buf)
 		if n > 0 {
-			stream.Send(&proto.FileUploadRequest{
-				FileChunk: &proto.FileUploadRequest_Content{
+			stream.Send(&file.FileUploadRequest{
+				FileChunk: &file.FileUploadRequest_Content{
 					Content: buf[:n],
 				},
 			})
@@ -135,8 +135,8 @@ func (c *GRPCFileServiceClient) Upload(storage string, isPermanent bool, fileNam
 		}
 	}
 
-	err = stream.Send(&proto.FileUploadRequest{
-		FileChunk: &proto.FileUploadRequest_End{
+	err = stream.Send(&file.FileUploadRequest{
+		FileChunk: &file.FileUploadRequest_End{
 			End: true,
 		},
 	})
@@ -155,7 +155,7 @@ func (c *GRPCFileServiceClient) Upload(storage string, isPermanent bool, fileNam
 
 // IsStorageExists check specific storage for existanse
 func (c *GRPCFileServiceClient) IsStorageExists(storage string) bool {
-	r, err := c.client.IsStorageExists(context.Background(), &proto.IsStorageExistsRequest{
+	r, err := c.client.IsStorageExists(context.Background(), &file.IsStorageExistsRequest{
 		Name: storage,
 	})
 	if err != nil {

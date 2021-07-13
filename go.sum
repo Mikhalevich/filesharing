@@ -50,8 +50,6 @@ github.com/Microsoft/go-winio v0.5.0/go.mod h1:JPGBdM1cNvN/6ISo+n8V5iA4v8pBzdOpz
 github.com/Microsoft/hcsshim v0.8.14/go.mod h1:NtVKoYxQuTLx6gEq0L96c9Ju4JbRJ4nY2ow3VK6a9Lg=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210713170333-b9322ac05455 h1:ag6bQwDm7RNNSE3sofB6eV3G+oI2jaEHfPReqA2SzcQ=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210713170333-b9322ac05455/go.mod h1:ap44UWKjGuBvSPXkR37bd3dbBCR9UtRi2aDygV94KZ0=
-github.com/Mikhalevich/filesharing-file-service v0.0.0-20210713160811-0e0461a4fdc8 h1:MsAvwKq+TWCzCRa0CXw5kLlssFwSP48gUp7JBVcMnKs=
-github.com/Mikhalevich/filesharing-file-service v0.0.0-20210713160811-0e0461a4fdc8/go.mod h1:SUSb0v0LfziKaUmDixy1/IO4UK5unWPzVRFNAGEu7Tw=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/OpenDNS/vegadns2client v0.0.0-20180418235048-a3fa4a771d87/go.mod h1:iGLljf5n9GjT6kc0HBvyI1nOKnGQbNB66VzSNbK5iks=
 github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7 h1:YoJbenK9C67SkzkDfmQuVln04ygHj3vjZfd9FL+GmQQ=

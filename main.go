@@ -7,9 +7,9 @@ import (
 	"os"
 	"strconv"
 
-	apb "github.com/Mikhalevich/filesharing-auth-service/proto"
-	fspb "github.com/Mikhalevich/filesharing-file-service/proto"
 	"github.com/Mikhalevich/filesharing/handler"
+	"github.com/Mikhalevich/filesharing/proto/auth"
+	"github.com/Mikhalevich/filesharing/proto/file"
 	"github.com/Mikhalevich/filesharing/router"
 	"github.com/Mikhalevich/filesharing/wrapper"
 	"github.com/asim/go-micro/v3"
@@ -72,8 +72,8 @@ func main() {
 
 	microService := micro.NewService()
 	microService.Init()
-	fsClient := fspb.NewFileService(params.FileServiceName, microService.Client())
-	authClient := apb.NewAuthService(params.AuthServiceName, microService.Client())
+	fsClient := file.NewFileService(params.FileServiceName, microService.Client())
+	authClient := auth.NewAuthService(params.AuthServiceName, microService.Client())
 
 	authService, err := wrapper.NewGRPCAuthServiceClient(authClient)
 	if err != nil {
