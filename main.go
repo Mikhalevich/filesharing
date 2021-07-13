@@ -12,7 +12,7 @@ import (
 	"github.com/Mikhalevich/filesharing/handler"
 	"github.com/Mikhalevich/filesharing/router"
 	"github.com/Mikhalevich/filesharing/wrapper"
-	"github.com/micro/go-micro/v2"
+	"github.com/asim/go-micro/v3"
 	"github.com/sirupsen/logrus"
 )
 
