@@ -59,7 +59,7 @@ type Route struct {
 type handler interface {
 	RegisterHandler(w http.ResponseWriter, r *http.Request)
 	LoginHandler(w http.ResponseWriter, r *http.Request)
-	JSONViewHandler(w http.ResponseWriter, r *http.Request)
+	GetFileList(w http.ResponseWriter, r *http.Request)
 	IndexHTMLHandler(w http.ResponseWriter, r *http.Request)
 	ViewHandler(w http.ResponseWriter, r *http.Request)
 	UploadHandler(w http.ResponseWriter, r *http.Request)
@@ -128,13 +128,13 @@ func (r *Router) makeRoutes() {
 			Pattern:       "/api/{storage}/permanent/",
 			Methods:       "GET",
 			PermanentPath: true,
-			Handler:       http.HandlerFunc(r.h.JSONViewHandler),
+			Handler:       http.HandlerFunc(r.h.GetFileList),
 		},
 		{
 			Pattern:   "/api/{storage}/",
 			Methods:   "GET",
 			StorePath: true,
-			Handler:   http.HandlerFunc(r.h.JSONViewHandler),
+			Handler:   http.HandlerFunc(r.h.GetFileList),
 		},
 		{
 			Pattern:   "/{storage}/index.html",
