@@ -25,11 +25,17 @@ func (h *Handler) GetFileList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type JSONInfo struct {
-		Name string `json:"name"`
+		Name    string `json:"name"`
+		Size    int64  `json:"size"`
+		ModTime int64  `json:"mod_time"`
 	}
 	info := make([]JSONInfo, 0, len(files))
 	for _, f := range files {
-		info = append(info, JSONInfo{Name: f.Name})
+		info = append(info, JSONInfo{
+			Name:    f.Name,
+			Size:    f.Size,
+			ModTime: f.ModTime,
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
