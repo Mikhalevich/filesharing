@@ -50,12 +50,6 @@ func NewRouter(ea bool, handl handler, l *logrus.Logger) *Router {
 func (r *Router) makeRoutes() {
 	r.routes = []Route{
 		{
-			Pattern: "/common/",
-			Methods: "GET",
-			Public:  true,
-			Handler: http.HandlerFunc(r.h.GetFileList),
-		},
-		{
 			Pattern: "/register/",
 			Methods: "GET,POST",
 			Public:  true,
@@ -91,9 +85,21 @@ func (r *Router) makeRoutes() {
 			Handler:       http.HandlerFunc(r.h.GetFileList),
 		},
 		{
+			Pattern: "/{storage:common}/{file}",
+			Methods: "GET",
+			Public:  true,
+			Handler: http.HandlerFunc(r.h.GetFileHandler),
+		},
+		{
 			Pattern: "/{storage}/{file}/",
 			Methods: "GET",
 			Handler: http.HandlerFunc(r.h.GetFileHandler),
+		},
+		{
+			Pattern: "/{storage:common}/",
+			Methods: "GET",
+			Public:  true,
+			Handler: http.HandlerFunc(r.h.GetFileList),
 		},
 		{
 			Pattern: "/{storage}/",

@@ -42,9 +42,7 @@ func (h *Handler) GetFileList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(info)
-	if err != nil {
+	if err := json.NewEncoder(w).Encode(info); err != nil {
 		h.Error(httpcode.NewWrapInternalServerError(err, "json encoder error"), w, "GetFileList")
 		return
 	}

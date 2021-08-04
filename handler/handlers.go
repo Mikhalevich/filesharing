@@ -41,14 +41,6 @@ type Token struct {
 	Value string
 }
 
-// StorageChecker interface retrieve info about storage from request
-type StorageChecker interface {
-	Name(r *http.Request) string
-	IsPermanent(r *http.Request) bool
-	FileName(r *http.Request) string
-	IsPublic(name string) bool
-}
-
 // Authentificator provide user auth functional
 type Authentificator interface {
 	CreateUser(user *User) (*Token, error)
@@ -89,7 +81,7 @@ func (h *Handler) Error(err httpcode.Error, w http.ResponseWriter, context strin
 		return
 	}
 
-	h.logger.Error(fmt.Errorf("[%s] %s: %w", context, err.Description, err))
+	h.logger.Error(fmt.Errorf("[%s] %s: %w", context, err.Description(), err))
 	http.Error(w, err.Description(), err.StatusCode())
 }
 
