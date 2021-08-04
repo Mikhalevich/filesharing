@@ -1,34 +1,32 @@
 package handler
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/Mikhalevich/filesharing/httpcode"
 )
 
 // ShareTextHandler crate file from share text request
 func (h *Handler) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
-	if h.respondWithInvalidMethodError(r.Method, w) {
-		return
-	}
-
 	title := r.FormValue("title")
 	body := r.FormValue("body")
 
 	if title == "" || body == "" {
-		h.respondWithError(errors.New("param error"), w, "ShareTextHandler", fmt.Sprintf("title or body was not set; title = %s body = %s", title, body), http.StatusBadRequest)
+		h.Error(httpcode.NewBadRequest(fmt.Sprintf("title or body was not set; title = %s body = %s", title, body)), w, "ShareTextHandler")
 		return
 	}
 
-	sp, err := h.requestParameters(r, false)
-	if h.respondWithError(err, w, "ShareTextHandler", "invalid parameters", http.StatusInternalServerError) {
+	sp, err := h.requestParameters(r)
+	if err != nil {
+		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "ShareTextHandler")
 		return
 	}
 
 	_, err = h.storage.Upload(sp.StorageName, sp.IsPermanent, title, strings.NewReader(body))
-	if h.respondWithError(err, w, "ShareTextHandler", fmt.Sprintf("unable to store text file: %s for storage: %s", title, sp.StorageName), http.StatusInternalServerError) {
-		return
+	if err != nil {
+		h.Error(httpcode.NewWrapInternalServerError(err, fmt.Sprintf("unable to store text file: %s for storage: %s", title, sp.StorageName)), w, "ShareTextHandler")
 	}
 
 	w.WriteHeader(http.StatusOK)

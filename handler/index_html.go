@@ -3,12 +3,15 @@ package handler
 import (
 	"io"
 	"net/http"
+
+	"github.com/Mikhalevich/filesharing/httpcode"
 )
 
 // IndexHTMLHandler process index.html file
 func (h *Handler) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
-	sp, err := h.requestParameters(r, false)
-	if h.respondWithError(err, w, "IndexHTMLHandler", "invalid parameters", http.StatusInternalServerError) {
+	sp, err := h.requestParameters(r)
+	if err != nil {
+		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "IndexHTMLHandler")
 		return
 	}
 
@@ -20,7 +23,8 @@ func (h *Handler) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-type", "text/html")
 	_, err = io.Copy(w, pr)
-	if h.respondWithError(err, w, "IndexHTMLHandler", "can't open index.html", http.StatusInternalServerError) {
+	if err != nil {
+		h.Error(httpcode.NewWrapInternalServerError(err, "can't open index.html"), w, "IndexHTMLHandler")
 		return
 	}
 }

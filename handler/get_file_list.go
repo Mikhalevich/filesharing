@@ -2,25 +2,28 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/Mikhalevich/filesharing/httpcode"
 )
 
-// JSONViewHandler it's spike for duplo client
+// GetFileList returns json encoded file list
 func (h *Handler) GetFileList(w http.ResponseWriter, r *http.Request) {
-	sp, err := h.requestParameters(r, false)
-	if h.respondWithError(err, w, "GetFileList", "invalid parameters", http.StatusInternalServerError) {
+	sp, err := h.requestParameters(r)
+	if err != nil {
+		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "GetFileList")
 		return
 	}
 
 	if !h.storage.IsStorageExists(sp.StorageName) {
-		h.respondWithError(errors.New("invalid storage"), w, "GetFileList", fmt.Sprintf("storage does not exist: %s", sp.StorageName), http.StatusInternalServerError)
+		h.Error(httpcode.NewBadRequest(fmt.Sprintf("storage does not exist: %s", sp.StorageName)), w, "GetFileList")
 		return
 	}
 
 	files, err := h.storage.Files(sp.StorageName, sp.IsPermanent)
-	if h.respondWithError(err, w, "GetFileList", fmt.Sprintf("unable to get files from storage: %s", sp.StorageName), http.StatusInternalServerError) {
+	if err != nil {
+		h.Error(httpcode.NewWrapInternalServerError(err, fmt.Sprintf("unable to get files from storage: %s", sp.StorageName)), w, "GetFileList")
 		return
 	}
 
@@ -42,6 +45,7 @@ func (h *Handler) GetFileList(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
 	err = encoder.Encode(info)
 	if err != nil {
-		h.respondWithError(err, w, "GetFileList", "json encoder error", http.StatusInternalServerError)
+		h.Error(httpcode.NewWrapInternalServerError(err, "json encoder error"), w, "GetFileList")
+		return
 	}
 }

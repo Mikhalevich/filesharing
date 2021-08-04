@@ -1,35 +1,34 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/Mikhalevich/filesharing/httpcode"
 )
 
 // UploadHandler upload file to storage
 func (h *Handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
-	if h.respondWithInvalidMethodError(r.Method, w) {
-		return
-	}
-
-	sp, err := h.requestParameters(r, false)
-	if h.respondWithError(err, w, "UploadHandler", "invalid parameters", http.StatusInternalServerError) {
+	sp, err := h.requestParameters(r)
+	if err != nil {
+		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "UploadHandler")
 		return
 	}
 
 	mr, err := r.MultipartReader()
-	if h.respondWithError(err, w, "UploadHandler", "request data error", http.StatusInternalServerError) {
+	if err != nil {
+		h.Error(httpcode.NewWrapInternalServerError(err, "request data error"), w, "UploadHandler")
 		return
 	}
 
 	for {
 		part, err := mr.NextPart()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
-		}
-
-		if h.respondWithError(err, w, "UploadHandler", "request data error", http.StatusInternalServerError) {
-			return
+		} else if err != nil {
+			h.Error(httpcode.NewWrapInternalServerError(err, "request data error"), w, "UploadHandler")
 		}
 
 		fileName := part.FileName()
@@ -38,7 +37,8 @@ func (h *Handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_, err = h.storage.Upload(sp.StorageName, sp.IsPermanent, fileName, part)
-		if h.respondWithError(err, w, "UploadHandler", fmt.Sprintf("unable to store file %s", fileName), http.StatusInternalServerError) {
+		if err != nil {
+			h.Error(httpcode.NewWrapInternalServerError(err, fmt.Sprintf("unable to store file %s", fileName)), w, "UploadHandler")
 			return
 		}
 	}

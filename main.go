@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/Mikhalevich/filesharing/handler"
 	"github.com/Mikhalevich/filesharing/proto/auth"
@@ -41,16 +40,6 @@ func loadParams() (*params, error) {
 		return nil, errors.New("auth service name is empty, please specify FS_AUTH_SERVICE_NAME variable")
 	}
 
-	p.SessionExpirePeriodInSec = 60 * 60 * 24
-	expirePeriodEnv := os.Getenv("FS_SESSION_EXPIRE_PERIOD_SEC")
-	if expirePeriodEnv != "" {
-		period, err := strconv.Atoi(expirePeriodEnv)
-		if err != nil {
-			return nil, fmt.Errorf("unable to convert expire session period to integer value expirePeriod: %s, error: %w", expirePeriodEnv, err)
-		}
-		p.SessionExpirePeriodInSec = period
-	}
-
 	return &p, nil
 }
 
@@ -67,9 +56,6 @@ func main() {
 		return
 	}
 
-	storageChecker := router.NewPublicStorages()
-	cookieSession := wrapper.NewCookieSession(storageChecker, int64(params.SessionExpirePeriodInSec))
-
 	microService := micro.NewService()
 	microService.Init()
 	fsClient := file.NewFileService(params.FileServiceName, microService.Client())
@@ -81,7 +67,7 @@ func main() {
 		return
 	}
 
-	h := handler.NewHandler(storageChecker, cookieSession, authService, wrapper.NewGRPCFileServiceClient(fsClient), logger)
+	h := handler.NewHandler(authService, wrapper.NewGRPCFileServiceClient(fsClient), logger)
 	r := router.NewRouter(true, h, logger)
 
 	logger.Infof("Running params = %v", params)
