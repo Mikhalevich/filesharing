@@ -50,12 +50,10 @@ func NewRouter(ea bool, handl handler, l *logrus.Logger) *Router {
 func (r *Router) makeRoutes() {
 	r.routes = []Route{
 		{
-			Pattern: "/",
+			Pattern: "/common/",
 			Methods: "GET",
 			Public:  true,
-			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				http.Redirect(w, r, "/common/", http.StatusMovedPermanently)
-			}),
+			Handler: http.HandlerFunc(r.h.GetFileList),
 		},
 		{
 			Pattern: "/register/",
