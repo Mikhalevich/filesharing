@@ -2,64 +2,54 @@ package handler
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
-	"github.com/Mikhalevich/filesharing/template"
+	"github.com/Mikhalevich/filesharing/httpcode"
 )
 
 // RegisterHandler register a new storage(user)
 func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	userInfo := template.NewTemplateRegister()
-	renderTemplate := true
+	storageName := r.FormValue("name")
+	password := r.FormValue("password")
 
-	defer func() {
-		if renderTemplate {
-			if err := userInfo.Execute(w); err != nil {
-				h.logger.Error(err)
-			}
-		}
-	}()
-
-	if r.Method != http.MethodPost {
+	if storageName == "" {
+		h.Error(httpcode.NewBadRequest("invalid storage name"), w, "RegisterHandler")
 		return
 	}
 
-	userInfo.StorageName = r.FormValue("name")
-	userInfo.Password = r.FormValue("password")
-
-	if userInfo.StorageName == "" {
-		userInfo.AddError("name", "Please specify storage name")
+	sp, err := h.requestParameters(r)
+	if err != nil {
+		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "RegisterHandler")
 		return
 	}
 
-	if h.sc.IsPublic(userInfo.StorageName) {
-		userInfo.AddError("common", "Storage with this name already exists")
+	if sp.IsPublic {
+		h.Error(httpcode.NewAlreadyExistError("storage with this name already exists"), w, "RegisterHandler")
 		return
 	}
 
 	token, err := h.auth.CreateUser(&User{
-		Name: userInfo.StorageName,
-		Pwd:  userInfo.Password,
+		Name: storageName,
+		Pwd:  password,
 	})
 
-	if errors.Is(err, ErrAlreadyExist) {
-		userInfo.AddError("common", "Storage with this name already exists")
-		return
-	} else if h.respondWithError(err, w, "RegisterHandler", "registration error", http.StatusInternalServerError) {
-		renderTemplate = false
-		return
-	}
-
-	h.session.SetToken(w, token, userInfo.StorageName)
-
-	err = h.storage.CreateStorage(userInfo.StorageName, true)
-	if !errors.Is(err, ErrAlreadyExist) &&
-		h.respondWithError(err, w, "RegisterHandler", "unable to create storage", http.StatusInternalServerError) {
-		renderTemplate = false
+	if err != nil {
+		if errors.Is(err, ErrAlreadyExist) {
+			h.Error(httpcode.NewAlreadyExistError("storage with this name already exists"), w, "RegisterHandler")
+		}
+		h.Error(httpcode.NewInternalServerError("registration error"), w, "RegisterHandler")
 		return
 	}
 
-	renderTemplate = false
-	http.Redirect(w, r, fmt.Sprintf("/%s", userInfo.StorageName), http.StatusFound)
+	w.Write([]byte(token.Value))
+
+	err = h.storage.CreateStorage(storageName, true)
+	if err != nil {
+		if !errors.Is(err, ErrAlreadyExist) {
+			h.Error(httpcode.NewInternalServerError("unable to create storage"), w, "RegisterHandler")
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

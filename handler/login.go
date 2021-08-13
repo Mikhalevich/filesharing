@@ -5,65 +5,46 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Mikhalevich/filesharing/template"
+	"github.com/Mikhalevich/filesharing/httpcode"
 )
 
 // LoginHandler sign in for the existing storage(user)
 func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	userInfo := template.NewTemplatePassword()
-	renderTemplate := true
-	defer func() {
-		if renderTemplate {
-			if err := userInfo.Execute(w); err != nil {
-				h.logger.Error(err)
-			}
-		}
-	}()
-
-	storageName := h.sc.Name(r)
-
-	if h.sc.IsPublic(storageName) {
-		userInfo.AddError("common", fmt.Sprintf("No need to login into %s", storageName))
+	sp, err := h.requestParameters(r)
+	if err != nil {
+		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "LoginHandler")
 		return
 	}
 
-	if r.Method != http.MethodPost {
+	if sp.IsPublic {
+		h.Error(httpcode.NewBadRequest(fmt.Sprintf("No need to login into %s", sp.StorageName)), w, "LoginHandler")
 		return
 	}
 
-	userInfo.Password = r.FormValue("password")
-
-	if storageName == "" {
-		userInfo.AddError("name", "Please specify storage name to login")
+	if sp.StorageName == "" {
+		h.Error(httpcode.NewBadRequest("invalid storage name"), w, "LoginHandler")
+		return
 	}
 
-	if userInfo.Password == "" {
-		userInfo.AddError("password", "Please enter password to login")
-	}
-
-	if len(userInfo.Errors) > 0 {
+	password := r.FormValue("password")
+	if password == "" {
+		h.Error(httpcode.NewBadRequest("invalid password"), w, "LoginHandler")
 		return
 	}
 
 	token, err := h.auth.Auth(&User{
-		Name: storageName,
-		Pwd:  userInfo.Password,
+		Name: sp.StorageName,
+		Pwd:  password,
 	})
 
 	if errors.Is(err, ErrNotExist) {
-		userInfo.AddError("name", "No such storage")
+		h.Error(httpcode.NewNotExistError("no such storage"), w, "LoginHandler")
 		return
 	} else if errors.Is(err, ErrPwdNotMatch) {
-		userInfo.AddError("password", "Password not match")
-		return
-	}
-	if h.respondWithError(err, w, "LoginHandler", "authorization error", http.StatusInternalServerError) {
-		renderTemplate = false
+		h.Error(httpcode.NewNotMatchError("not match"), w, "LoginHandler")
 		return
 	}
 
-	h.session.SetToken(w, token, storageName)
-
-	renderTemplate = false
-	http.Redirect(w, r, fmt.Sprintf("/%s", storageName), http.StatusFound)
+	w.Write([]byte(token.Value))
+	w.WriteHeader(http.StatusOK)
 }
