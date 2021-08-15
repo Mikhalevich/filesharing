@@ -36,13 +36,15 @@ type Router struct {
 	enableAuth bool
 	routes     []Route
 	h          handler
+	ps         map[string]bool
 	logger     *logrus.Logger
 }
 
-func NewRouter(ea bool, handl handler, l *logrus.Logger) *Router {
+func NewRouter(ea bool, handl handler, publicStorages map[string]bool, l *logrus.Logger) *Router {
 	return &Router{
 		enableAuth: ea,
 		h:          handl,
+		ps:         publicStorages,
 		logger:     l,
 	}
 }
@@ -51,13 +53,13 @@ func (r *Router) makeRoutes() {
 	r.routes = []Route{
 		{
 			Pattern: "/register/",
-			Methods: "GET,POST",
+			Methods: "POST",
 			Public:  true,
 			Handler: http.HandlerFunc(r.h.RegisterHandler),
 		},
 		{
 			Pattern: "/login/{storage}/",
-			Methods: "GET,POST",
+			Methods: "POST",
 			Public:  true,
 			Handler: http.HandlerFunc(r.h.LoginHandler),
 		},
@@ -85,21 +87,9 @@ func (r *Router) makeRoutes() {
 			Handler:       http.HandlerFunc(r.h.GetFileList),
 		},
 		{
-			Pattern: "/{storage:common}/{file}",
-			Methods: "GET",
-			Public:  true,
-			Handler: http.HandlerFunc(r.h.GetFileHandler),
-		},
-		{
 			Pattern: "/{storage}/{file}/",
 			Methods: "GET",
 			Handler: http.HandlerFunc(r.h.GetFileHandler),
-		},
-		{
-			Pattern: "/{storage:common}/",
-			Methods: "GET",
-			Public:  true,
-			Handler: http.HandlerFunc(r.h.GetFileList),
 		},
 		{
 			Pattern: "/{storage}/",
@@ -144,13 +134,19 @@ func (r *Router) makeRoutes() {
 
 func (r *Router) storeRouterParametes(isPublic bool, isPermanent bool, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-		ctx := ctxinfo.WithPublicStorage(request.Context(), isPublic)
+		ctx := request.Context()
 
 		storage := mux.Vars(request)["storage"]
 		if storage != "" {
 			ctx = ctxinfo.WithUserName(ctx, storage)
 			ctx = ctxinfo.WithPermanentStorage(ctx, isPermanent)
+
+			if !isPublic && r.ps[storage] {
+				isPublic = true
+			}
 		}
+
+		ctx = ctxinfo.WithPublicStorage(ctx, isPublic)
 
 		fileName := mux.Vars(request)["file"]
 		if fileName != "" {

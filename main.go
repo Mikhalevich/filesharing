@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/Mikhalevich/filesharing/handler"
 	"github.com/Mikhalevich/filesharing/proto/auth"
@@ -16,10 +17,10 @@ import (
 )
 
 type params struct {
-	Host                     string
-	FileServiceName          string
-	AuthServiceName          string
-	SessionExpirePeriodInSec int
+	Host            string
+	FileServiceName string
+	AuthServiceName string
+	PublicStorages  map[string]bool
 }
 
 func loadParams() (*params, error) {
@@ -38,6 +39,18 @@ func loadParams() (*params, error) {
 	p.AuthServiceName = os.Getenv("FS_AUTH_SERVICE_NAME")
 	if p.AuthServiceName == "" {
 		return nil, errors.New("auth service name is empty, please specify FS_AUTH_SERVICE_NAME variable")
+	}
+
+	publicStorages := os.Getenv("FS_PUBLIC_STORAGES")
+	if publicStorages == "" {
+		publicStorages = "common"
+	}
+
+	p.PublicStorages = make(map[string]bool)
+	for _, v := range strings.Split(publicStorages, " ") {
+		if v != "" {
+			p.PublicStorages[v] = true
+		}
 	}
 
 	return &p, nil
@@ -68,7 +81,7 @@ func main() {
 	}
 
 	h := handler.NewHandler(authService, wrapper.NewGRPCFileServiceClient(fsClient), logger)
-	r := router.NewRouter(true, h, logger)
+	r := router.NewRouter(true, h, params.PublicStorages, logger)
 
 	logger.Infof("Running params = %v", params)
 
