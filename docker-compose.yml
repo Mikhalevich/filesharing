@@ -1,17 +1,27 @@
 version: "3"
 services:
+  web_service:
+    build: filesharing-web-service
+    ports:
+      - "8080:8080"
+    environment:
+      FS_HOST: ":8080"
+      FS_SESSION_EXPIRE_PERIOD_SEC: "2592000"
+      FS_GATEWAY_HOST: "filesharing:8000"
+    depends_on:
+      - filesharing
   filesharing:
     build: .
     ports:
-    - "8080:8080"
+      - "8000:8000"
     environment:
-      FS_HOST: ":8080"
+      FS_HOST: ":8000"
       FS_FILE_SERVICE_NAME: "filesharing.fileservice"
       FS_AUTH_SERVICE_NAME: "filesharing.authservice"
       FS_SESSION_EXPIRE_PERIOD_SEC: "2592000"
     depends_on:
-    - file_service
-    - auth_service
+      - file_service
+      - auth_service
   file_service:
     build: filesharing-file-service
     environment:
@@ -21,7 +31,7 @@ services:
       FS_PERMANENT_DIRECTORY: "permanent"
       FS_CLEAN_TIME: "23:59"
     volumes:
-    - filesharing-file-service-storage:/data/
+      - filesharing-file-service-storage:/data/
   auth_service:
     build: filesharing-auth-service
     environment:
@@ -33,13 +43,13 @@ services:
   dbpg:
     image: postgres
     ports:
-    - 5432:5432
+      - 5432:5432
     environment:
       POSTGRES_DB: filesharing
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123456
     volumes:
-    - filesharing-db-data:/var/lib/postgresql/data/
+      - filesharing-db-data:/var/lib/postgresql/data/
 volumes:
   filesharing-file-service-storage:
   filesharing-db-data:
