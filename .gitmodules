@@ -6,4 +6,4 @@
 	url = git@github.com:Mikhalevich/filesharing-auth-service.git
 [submodule "filesharing-web-service"]
 	path = filesharing-web-service
-	url = ./filesharing-web-service/
+	url = git@github.com:Mikhalevich/filesharing-web-service.git
