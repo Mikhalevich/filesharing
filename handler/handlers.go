@@ -9,6 +9,7 @@ import (
 
 	"github.com/Mikhalevich/filesharing/ctxinfo"
 	"github.com/Mikhalevich/filesharing/httpcode"
+	"github.com/Mikhalevich/filesharing/proto/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,19 +33,10 @@ type File struct {
 	ModTime int64
 }
 
-type User struct {
-	Name string
-	Pwd  string
-}
-
-type Token struct {
-	Value string
-}
-
 // Authentificator provide user auth functional
 type Authentificator interface {
-	CreateUser(user *User) (*Token, error)
-	Auth(user *User) (*Token, error)
+	CreateUser(user *types.User) (*types.Token, error)
+	Auth(user *types.User) (*types.Token, error)
 	UserNameByToken(token string) (string, error)
 }
 

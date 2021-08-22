@@ -8,6 +8,7 @@ import (
 type contextInfoKey string
 
 const (
+	contextUserID           = contextInfoKey("contextUserID")
 	contextUserName         = contextInfoKey("contextUserName")
 	contextPermanentStorage = contextInfoKey("contextPermanentStorage")
 	contextFileName         = contextInfoKey("contextFileName")
@@ -17,6 +18,24 @@ const (
 var (
 	ErrNotFound = errors.New("not found")
 )
+
+func WithUserID(ctx context.Context, id int64) context.Context {
+	return context.WithValue(ctx, contextUserID, id)
+}
+
+func UserID(ctx context.Context) (int64, error) {
+	v := ctx.Value(contextUserID)
+	if v == nil {
+		return 0, ErrNotFound
+	}
+
+	id, ok := v.(int64)
+	if !ok {
+		return 0, errors.New("user id is not int")
+	}
+
+	return id, nil
+}
 
 func WithUserName(ctx context.Context, name string) context.Context {
 	return context.WithValue(ctx, contextUserName, name)

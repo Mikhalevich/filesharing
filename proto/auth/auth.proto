@@ -2,11 +2,13 @@ syntax = "proto3";
 
 package auth;
 
-option go_package = "./;auth";
+option go_package = "github.com/Mikhalevich/filesharing/proto/auth";
+
+import "types/types.proto";
 
 service AuthService {
-  rpc Create(User) returns (Response) {}
-  rpc Auth(User) returns (Response) {}
+  rpc Create(CreateUserRequest) returns (CreateUserResponse) {}
+  rpc Auth(AuthUserRequest) returns (AuthUserResponse) {}
 }
 
 enum Status {
@@ -16,14 +18,20 @@ enum Status {
     PwdNotMatch = 3;
 }
 
-message Response {
-    Status status = 1;
-    string token = 2;
+message CreateUserRequest {
+    types.User user = 1;
 }
 
-message User {
-    int64 id = 1;
-    string name = 2;
-    string email = 3;
-    string password = 4;
+message CreateUserResponse {
+    Status status = 1;
+    types.Token token = 2;
+}
+
+message AuthUserRequest {
+    types.User user = 1;
+}
+
+message AuthUserResponse {
+    Status status = 1;
+    types.Token token = 2;
 }

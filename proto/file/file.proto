@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package file;
 
-option go_package = "./;file";
+option go_package = "github.com/Mikhalevich/filesharing/proto/file";
 
 service FileService {
   rpc List(ListRequest) returns (ListResponse) {}

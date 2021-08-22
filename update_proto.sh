@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 
-protoc -I proto/auth --go_out=proto/auth --micro_out=proto/auth proto/auth/auth.proto
-protoc -I proto/file --go_out=proto/file --micro_out=proto/file proto/file/file.proto
+protoc -I proto/ --go_out=paths=source_relative:./proto --micro_out=paths=source_relative:./proto types/types.proto
+protoc -I proto/ --go_out=paths=source_relative:./proto --micro_out=paths=source_relative:./proto auth/auth.proto
+protoc -I proto/ --go_out=paths=source_relative:./proto --micro_out=paths=source_relative:./proto file/file.proto

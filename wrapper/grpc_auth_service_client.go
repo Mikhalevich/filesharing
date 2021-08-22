@@ -8,6 +8,7 @@ import (
 	"github.com/Mikhalevich/filesharing-auth-service/token"
 	"github.com/Mikhalevich/filesharing/handler"
 	"github.com/Mikhalevich/filesharing/proto/auth"
+	"github.com/Mikhalevich/filesharing/proto/types"
 )
 
 type GRPCAuthServiceClient struct {
@@ -27,20 +28,15 @@ func NewGRPCAuthServiceClient(c auth.AuthService) (*GRPCAuthServiceClient, error
 	}, nil
 }
 
-func marshalUser(user *handler.User) *auth.User {
-	return &auth.User{
-		Name:     user.Name,
-		Password: user.Pwd,
-	}
-}
-
-func (c *GRPCAuthServiceClient) CreateUser(user *handler.User) (*handler.Token, error) {
-	r, err := c.client.Create(context.Background(), marshalUser(user))
+func (c *GRPCAuthServiceClient) CreateUser(user *types.User) (*types.Token, error) {
+	rsp, err := c.client.Create(context.Background(), &auth.CreateUserRequest{
+		User: user,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	switch r.GetStatus() {
+	switch rsp.GetStatus() {
 	case auth.Status_Ok:
 		// break
 	case auth.Status_AlreadyExist:
@@ -49,18 +45,18 @@ func (c *GRPCAuthServiceClient) CreateUser(user *handler.User) (*handler.Token, 
 		return nil, errors.New("invalid response")
 	}
 
-	return &handler.Token{
-		Value: r.GetToken(),
-	}, nil
+	return rsp.GetToken(), nil
 }
 
-func (c *GRPCAuthServiceClient) Auth(user *handler.User) (*handler.Token, error) {
-	r, err := c.client.Auth(context.Background(), marshalUser(user))
+func (c *GRPCAuthServiceClient) Auth(user *types.User) (*types.Token, error) {
+	rsp, err := c.client.Auth(context.Background(), &auth.AuthUserRequest{
+		User: user,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	switch r.GetStatus() {
+	switch rsp.GetStatus() {
 	case auth.Status_Ok:
 		// break
 	case auth.Status_PwdNotMatch:
@@ -70,9 +66,7 @@ func (c *GRPCAuthServiceClient) Auth(user *handler.User) (*handler.Token, error)
 	default:
 		return nil, errors.New("invalid response")
 	}
-	return &handler.Token{
-		Value: r.GetToken(),
-	}, nil
+	return rsp.GetToken(), nil
 }
 
 func (c *GRPCAuthServiceClient) UserNameByToken(tokenString string) (string, error) {

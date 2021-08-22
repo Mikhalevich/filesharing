@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Mikhalevich/filesharing/httpcode"
+	"github.com/Mikhalevich/filesharing/proto/types"
 )
 
 // RegisterHandler register a new storage(user)
@@ -28,9 +29,9 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.auth.CreateUser(&User{
-		Name: storageName,
-		Pwd:  password,
+	token, err := h.auth.CreateUser(&types.User{
+		Name:     storageName,
+		Password: password,
 	})
 
 	if err != nil {
