@@ -9,6 +9,7 @@ import (
 
 	"github.com/Mikhalevich/filesharing/ctxinfo"
 	"github.com/Mikhalevich/filesharing/httpcode"
+	"github.com/Mikhalevich/filesharing/proto/file"
 	"github.com/Mikhalevich/filesharing/proto/types"
 	"github.com/sirupsen/logrus"
 )
@@ -26,13 +27,6 @@ var (
 	ErrExpired      = errors.New("session is expired")
 )
 
-// File represents one file from storage
-type File struct {
-	Name    string
-	Size    int64
-	ModTime int64
-}
-
 // Authentificator provide user auth functional
 type Authentificator interface {
 	CreateUser(user *types.User) (*types.Token, error)
@@ -42,11 +36,11 @@ type Authentificator interface {
 
 // Storager storage communication interface
 type Storager interface {
-	Files(storage string, isPermanent bool) ([]*File, error)
+	Files(storage string, isPermanent bool) ([]*file.File, error)
 	CreateStorage(storage string, withPermanent bool) error
 	Remove(storage string, isPermanent bool, fileName string) error
 	Get(storage string, isPermanent bool, fileName string, w io.Writer) error
-	Upload(storage string, isPermanent bool, fileName string, r io.Reader) (*File, error)
+	Upload(storage string, isPermanent bool, fileName string, r io.Reader) (*file.File, error)
 	IsStorageExists(storage string) bool
 }
 

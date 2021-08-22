@@ -21,28 +21,14 @@ func NewGRPCFileServiceClient(c file.FileService) *GRPCFileServiceClient {
 	}
 }
 
-func unmarshalFile(file *file.File) *handler.File {
-	return &handler.File{
-		Name:    file.GetName(),
-		Size:    file.GetSize(),
-		ModTime: file.GetModTime(),
-	}
-}
-
 // Files return files from storage
-func (c *GRPCFileServiceClient) Files(storage string, isPermanent bool) ([]*handler.File, error) {
-	r, err := c.client.List(context.Background(), &file.ListRequest{Storage: storage, IsPermanent: isPermanent})
+func (c *GRPCFileServiceClient) Files(storage string, isPermanent bool) ([]*file.File, error) {
+	rsp, err := c.client.List(context.Background(), &file.ListRequest{Storage: storage, IsPermanent: isPermanent})
 	if err != nil {
 		return nil, err
 	}
 
-	grpcFiles := r.GetFiles()
-	files := make([]*handler.File, 0, len(grpcFiles))
-	for _, file := range grpcFiles {
-		files = append(files, unmarshalFile(file))
-	}
-
-	return files, nil
+	return rsp.GetFiles(), nil
 }
 
 // CreateStorage just create storage with specified storage name and permanent folder
@@ -102,7 +88,7 @@ func (c *GRPCFileServiceClient) Get(storage string, isPermanent bool, fileName s
 }
 
 // Upload upload file to storage
-func (c *GRPCFileServiceClient) Upload(storage string, isPermanent bool, fileName string, r io.Reader) (*handler.File, error) {
+func (c *GRPCFileServiceClient) Upload(storage string, isPermanent bool, fileName string, r io.Reader) (*file.File, error) {
 	stream, err := c.client.UploadFile(context.Background())
 	if err != nil {
 		return nil, err
@@ -145,12 +131,12 @@ func (c *GRPCFileServiceClient) Upload(storage string, isPermanent bool, fileNam
 		return nil, err
 	}
 
-	file, err := stream.Recv()
+	f, err := stream.Recv()
 	if err != nil {
 		return nil, err
 	}
 
-	return unmarshalFile(file), nil
+	return f, nil
 }
 
 // IsStorageExists check specific storage for existanse
