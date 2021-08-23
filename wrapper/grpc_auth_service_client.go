@@ -69,12 +69,14 @@ func (c *GRPCAuthServiceClient) Auth(user *types.User) (*types.Token, error) {
 	return rsp.GetToken(), nil
 }
 
-func (c *GRPCAuthServiceClient) GetPublicUsers() ([]*types.User, error) {
-	rsp, err := c.client.GetPublicUsers(context.Background(), &auth.GetPublicUsersRequest{})
+func (c *GRPCAuthServiceClient) AuthPublicUser(name string) (*types.Token, error) {
+	rsp, err := c.client.AuthPublicUser(context.Background(), &auth.AuthPublicUserRequest{
+		Name: name,
+	})
 	if err != nil {
 		return nil, err
 	}
-	return rsp.GetUsers(), nil
+	return rsp.GetToken(), nil
 }
 
 func (c *GRPCAuthServiceClient) UserByToken(tokenString string) (*types.User, error) {

@@ -31,6 +31,7 @@ var (
 type Authentificator interface {
 	CreateUser(user *types.User) (*types.Token, error)
 	Auth(user *types.User) (*types.Token, error)
+	AuthPublicUser(name string) (*types.Token, error)
 	UserByToken(token string) (*types.User, error)
 }
 
@@ -174,22 +175,36 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 
 		token := extractToken(r)
 		if token == "" {
-			h.Error(httpcode.NewHTTPError(http.StatusUnauthorized, "unable to get token"), w, "CheckAuthMiddleware")
-			return
+			t, err := h.auth.AuthPublicUser(p.StorageName)
+			if err != nil {
+				h.Error(httpcode.NewHTTPError(http.StatusUnauthorized, "unable to get token"), w, "CheckAuthMiddleware")
+				return
+			}
+			token = t.GetValue()
+			r.Header.Set("X-Token", token)
 		}
 
 		user, err := h.auth.UserByToken(token)
 		if err != nil {
-			h.Error(httpcode.NewHTTPWrapError(err, http.StatusUnauthorized, "unable to get user by token"), w, "CheckAuthMiddleware")
-			return
+			t, err := h.auth.AuthPublicUser(p.StorageName)
+			if err != nil {
+				h.Error(httpcode.NewHTTPWrapError(err, http.StatusUnauthorized, "unable to get user by token"), w, "CheckAuthMiddleware")
+				return
+			}
+			token = t.GetValue()
+			r.Header.Set("X-Token", token)
 		}
-
-		r = r.WithContext(ctxinfo.WithUserID(r.Context(), user.Id))
 
 		if user.Name != p.StorageName {
 			h.Error(httpcode.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("invalid request user = %s, storage = %s", user, p.StorageName)), w, "CheckAuthMiddleware")
 			return
 		}
+
+		ctx := ctxinfo.WithUserID(r.Context(), user.Id)
+		if !p.IsPublic && user.Public {
+			ctx = ctxinfo.WithPublicStorage(ctx, true)
+		}
+		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
 	})

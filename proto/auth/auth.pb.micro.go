@@ -39,7 +39,7 @@ func NewAuthServiceEndpoints() []*api.Endpoint {
 type AuthService interface {
 	Create(ctx context.Context, in *CreateUserRequest, opts ...client.CallOption) (*CreateUserResponse, error)
 	Auth(ctx context.Context, in *AuthUserRequest, opts ...client.CallOption) (*AuthUserResponse, error)
-	GetPublicUsers(ctx context.Context, in *GetPublicUsersRequest, opts ...client.CallOption) (*GetPublicUsersResponse, error)
+	AuthPublicUser(ctx context.Context, in *AuthPublicUserRequest, opts ...client.CallOption) (*AuthPublicUserResponse, error)
 }
 
 type authService struct {
@@ -74,9 +74,9 @@ func (c *authService) Auth(ctx context.Context, in *AuthUserRequest, opts ...cli
 	return out, nil
 }
 
-func (c *authService) GetPublicUsers(ctx context.Context, in *GetPublicUsersRequest, opts ...client.CallOption) (*GetPublicUsersResponse, error) {
-	req := c.c.NewRequest(c.name, "AuthService.GetPublicUsers", in)
-	out := new(GetPublicUsersResponse)
+func (c *authService) AuthPublicUser(ctx context.Context, in *AuthPublicUserRequest, opts ...client.CallOption) (*AuthPublicUserResponse, error) {
+	req := c.c.NewRequest(c.name, "AuthService.AuthPublicUser", in)
+	out := new(AuthPublicUserResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -89,14 +89,14 @@ func (c *authService) GetPublicUsers(ctx context.Context, in *GetPublicUsersRequ
 type AuthServiceHandler interface {
 	Create(context.Context, *CreateUserRequest, *CreateUserResponse) error
 	Auth(context.Context, *AuthUserRequest, *AuthUserResponse) error
-	GetPublicUsers(context.Context, *GetPublicUsersRequest, *GetPublicUsersResponse) error
+	AuthPublicUser(context.Context, *AuthPublicUserRequest, *AuthPublicUserResponse) error
 }
 
 func RegisterAuthServiceHandler(s server.Server, hdlr AuthServiceHandler, opts ...server.HandlerOption) error {
 	type authService interface {
 		Create(ctx context.Context, in *CreateUserRequest, out *CreateUserResponse) error
 		Auth(ctx context.Context, in *AuthUserRequest, out *AuthUserResponse) error
-		GetPublicUsers(ctx context.Context, in *GetPublicUsersRequest, out *GetPublicUsersResponse) error
+		AuthPublicUser(ctx context.Context, in *AuthPublicUserRequest, out *AuthPublicUserResponse) error
 	}
 	type AuthService struct {
 		authService
@@ -117,6 +117,6 @@ func (h *authServiceHandler) Auth(ctx context.Context, in *AuthUserRequest, out 
 	return h.AuthServiceHandler.Auth(ctx, in, out)
 }
 
-func (h *authServiceHandler) GetPublicUsers(ctx context.Context, in *GetPublicUsersRequest, out *GetPublicUsersResponse) error {
-	return h.AuthServiceHandler.GetPublicUsers(ctx, in, out)
+func (h *authServiceHandler) AuthPublicUser(ctx context.Context, in *AuthPublicUserRequest, out *AuthPublicUserResponse) error {
+	return h.AuthServiceHandler.AuthPublicUser(ctx, in, out)
 }

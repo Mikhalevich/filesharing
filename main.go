@@ -9,7 +9,6 @@ import (
 	"github.com/Mikhalevich/filesharing/handler"
 	"github.com/Mikhalevich/filesharing/proto/auth"
 	"github.com/Mikhalevich/filesharing/proto/file"
-	"github.com/Mikhalevich/filesharing/proto/types"
 	"github.com/Mikhalevich/filesharing/router"
 	"github.com/Mikhalevich/filesharing/wrapper"
 	"github.com/asim/go-micro/v3"
@@ -69,16 +68,7 @@ func main() {
 
 	h := handler.NewHandler(authService, wrapper.NewGRPCFileServiceClient(fsClient), logger)
 
-	pu, err := authService.GetPublicUsers()
-	if err != nil {
-		pu = []*types.User{
-			{
-				Name:   "common",
-				Public: true,
-			},
-		}
-	}
-	r := router.NewRouter(true, h, pu, logger)
+	r := router.NewRouter(true, h, logger)
 
 	logger.Infof("Running params = %v", params)
 

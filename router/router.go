@@ -41,17 +41,10 @@ type Router struct {
 	logger     *logrus.Logger
 }
 
-func NewRouter(ea bool, handl handler, publicStorages []*types.User, l *logrus.Logger) *Router {
-	storageMap := make(map[string]*types.User, len(publicStorages))
-	for _, s := range publicStorages {
-		if s.Public {
-			storageMap[s.Name] = s
-		}
-	}
+func NewRouter(ea bool, handl handler, l *logrus.Logger) *Router {
 	return &Router{
 		enableAuth: ea,
 		h:          handl,
-		ps:         storageMap,
 		logger:     l,
 	}
 }
@@ -147,11 +140,6 @@ func (r *Router) storeRouterParametes(isPublic bool, isPermanent bool, next http
 		if storage != "" {
 			ctx = ctxinfo.WithUserName(ctx, storage)
 			ctx = ctxinfo.WithPermanentStorage(ctx, isPermanent)
-
-			if s, ok := r.ps[storage]; ok {
-				isPublic = true
-				ctx = ctxinfo.WithUserID(ctx, s.Id)
-			}
 		}
 
 		ctx = ctxinfo.WithPublicStorage(ctx, isPublic)
