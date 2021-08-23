@@ -39,6 +39,7 @@ func NewAuthServiceEndpoints() []*api.Endpoint {
 type AuthService interface {
 	Create(ctx context.Context, in *CreateUserRequest, opts ...client.CallOption) (*CreateUserResponse, error)
 	Auth(ctx context.Context, in *AuthUserRequest, opts ...client.CallOption) (*AuthUserResponse, error)
+	GetPublicUsers(ctx context.Context, in *GetPublicUsersRequest, opts ...client.CallOption) (*GetPublicUsersResponse, error)
 }
 
 type authService struct {
@@ -73,17 +74,29 @@ func (c *authService) Auth(ctx context.Context, in *AuthUserRequest, opts ...cli
 	return out, nil
 }
 
+func (c *authService) GetPublicUsers(ctx context.Context, in *GetPublicUsersRequest, opts ...client.CallOption) (*GetPublicUsersResponse, error) {
+	req := c.c.NewRequest(c.name, "AuthService.GetPublicUsers", in)
+	out := new(GetPublicUsersResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for AuthService service
 
 type AuthServiceHandler interface {
 	Create(context.Context, *CreateUserRequest, *CreateUserResponse) error
 	Auth(context.Context, *AuthUserRequest, *AuthUserResponse) error
+	GetPublicUsers(context.Context, *GetPublicUsersRequest, *GetPublicUsersResponse) error
 }
 
 func RegisterAuthServiceHandler(s server.Server, hdlr AuthServiceHandler, opts ...server.HandlerOption) error {
 	type authService interface {
 		Create(ctx context.Context, in *CreateUserRequest, out *CreateUserResponse) error
 		Auth(ctx context.Context, in *AuthUserRequest, out *AuthUserResponse) error
+		GetPublicUsers(ctx context.Context, in *GetPublicUsersRequest, out *GetPublicUsersResponse) error
 	}
 	type AuthService struct {
 		authService
@@ -102,4 +115,8 @@ func (h *authServiceHandler) Create(ctx context.Context, in *CreateUserRequest, 
 
 func (h *authServiceHandler) Auth(ctx context.Context, in *AuthUserRequest, out *AuthUserResponse) error {
 	return h.AuthServiceHandler.Auth(ctx, in, out)
+}
+
+func (h *authServiceHandler) GetPublicUsers(ctx context.Context, in *GetPublicUsersRequest, out *GetPublicUsersResponse) error {
+	return h.AuthServiceHandler.GetPublicUsers(ctx, in, out)
 }

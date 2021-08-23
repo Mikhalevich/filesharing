@@ -31,7 +31,7 @@ var (
 type Authentificator interface {
 	CreateUser(user *types.User) (*types.Token, error)
 	Auth(user *types.User) (*types.Token, error)
-	UserNameByToken(token string) (string, error)
+	UserByToken(token string) (*types.User, error)
 }
 
 // Storager storage communication interface
@@ -178,15 +178,15 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := h.auth.UserNameByToken(token)
+		user, err := h.auth.UserByToken(token)
 		if err != nil {
 			h.Error(httpcode.NewHTTPWrapError(err, http.StatusUnauthorized, "unable to get user by token"), w, "CheckAuthMiddleware")
 			return
 		}
 
-		r = r.WithContext(ctxinfo.WithUserName(r.Context(), user))
+		r = r.WithContext(ctxinfo.WithUserID(r.Context(), user.Id))
 
-		if user != p.StorageName {
+		if user.Name != p.StorageName {
 			h.Error(httpcode.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("invalid request user = %s, storage = %s", user, p.StorageName)), w, "CheckAuthMiddleware")
 			return
 		}

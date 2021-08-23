@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mikhalevich/filesharing/ctxinfo"
+	"github.com/Mikhalevich/filesharing/proto/types"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
@@ -36,15 +37,21 @@ type Router struct {
 	enableAuth bool
 	routes     []Route
 	h          handler
-	ps         map[string]bool
+	ps         map[string]*types.User
 	logger     *logrus.Logger
 }
 
-func NewRouter(ea bool, handl handler, publicStorages map[string]bool, l *logrus.Logger) *Router {
+func NewRouter(ea bool, handl handler, publicStorages []*types.User, l *logrus.Logger) *Router {
+	storageMap := make(map[string]*types.User, len(publicStorages))
+	for _, s := range publicStorages {
+		if s.Public {
+			storageMap[s.Name] = s
+		}
+	}
 	return &Router{
 		enableAuth: ea,
 		h:          handl,
-		ps:         publicStorages,
+		ps:         storageMap,
 		logger:     l,
 	}
 }
@@ -141,8 +148,9 @@ func (r *Router) storeRouterParametes(isPublic bool, isPermanent bool, next http
 			ctx = ctxinfo.WithUserName(ctx, storage)
 			ctx = ctxinfo.WithPermanentStorage(ctx, isPermanent)
 
-			if !isPublic && r.ps[storage] {
+			if s, ok := r.ps[storage]; ok {
 				isPublic = true
+				ctx = ctxinfo.WithUserID(ctx, s.Id)
 			}
 		}
 

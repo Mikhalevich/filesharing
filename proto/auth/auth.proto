@@ -9,6 +9,7 @@ import "types/types.proto";
 service AuthService {
   rpc Create(CreateUserRequest) returns (CreateUserResponse) {}
   rpc Auth(AuthUserRequest) returns (AuthUserResponse) {}
+  rpc GetPublicUsers(GetPublicUsersRequest) returns (GetPublicUsersResponse) {}
 }
 
 enum Status {
@@ -34,4 +35,11 @@ message AuthUserRequest {
 message AuthUserResponse {
     Status status = 1;
     types.Token token = 2;
+}
+
+message GetPublicUsersRequest {
+}
+
+message GetPublicUsersResponse {
+    repeated types.User users = 1;
 }
