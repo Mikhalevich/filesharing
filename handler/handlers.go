@@ -181,7 +181,7 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 				return
 			}
 			token = t.GetValue()
-			r.Header.Set("X-Token", token)
+			w.Header().Set("X-Token", token)
 		}
 
 		user, err := h.auth.UserByToken(token)
@@ -192,7 +192,7 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 				return
 			}
 			token = t.GetValue()
-			r.Header.Set("X-Token", token)
+			w.Header().Set("X-Token", token)
 		}
 
 		if user.Name != p.StorageName {
