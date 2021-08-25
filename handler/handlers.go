@@ -11,6 +11,7 @@ import (
 	"github.com/Mikhalevich/filesharing/httpcode"
 	"github.com/Mikhalevich/filesharing/proto/file"
 	"github.com/Mikhalevich/filesharing/proto/types"
+	"github.com/asim/go-micro/v3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -50,14 +51,16 @@ type Handler struct {
 	auth    Authentificator
 	storage Storager
 	logger  *logrus.Logger
+	filePub micro.Event
 }
 
 // NewHandler constructor for Handler
-func NewHandler(a Authentificator, s Storager, l *logrus.Logger) *Handler {
+func NewHandler(a Authentificator, s Storager, l *logrus.Logger, filePub micro.Event) *Handler {
 	return &Handler{
 		auth:    a,
 		storage: s,
 		logger:  l,
+		filePub: filePub,
 	}
 }
 
@@ -73,6 +76,7 @@ func (h *Handler) Error(err httpcode.Error, w http.ResponseWriter, context strin
 }
 
 type storageParameters struct {
+	UserID      int64
 	StorageName string
 	IsPublic    bool
 	IsPermanent bool
@@ -81,6 +85,13 @@ type storageParameters struct {
 
 func (h *Handler) requestParameters(r *http.Request) (storageParameters, error) {
 	ctx := r.Context()
+	userID, err := ctxinfo.UserID(ctx)
+	if errors.Is(err, ctxinfo.ErrNotFound) {
+		userID = 0
+	} else if err != nil {
+		return storageParameters{}, fmt.Errorf("unable to get user id: %w", err)
+	}
+
 	storage, err := ctxinfo.UserName(ctx)
 	if errors.Is(err, ctxinfo.ErrNotFound) {
 		storage = ""
@@ -110,6 +121,7 @@ func (h *Handler) requestParameters(r *http.Request) (storageParameters, error) 
 	}
 
 	return storageParameters{
+		UserID:      userID,
 		StorageName: storage,
 		IsPublic:    isPublic,
 		IsPermanent: isPermanent,

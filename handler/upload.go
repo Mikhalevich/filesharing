@@ -1,12 +1,15 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/Mikhalevich/filesharing/httpcode"
+	"github.com/Mikhalevich/filesharing/proto/event"
 )
 
 // UploadHandler upload file to storage
@@ -41,6 +44,16 @@ func (h *Handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 			h.Error(httpcode.NewWrapInternalServerError(err, fmt.Sprintf("unable to store file %s", fileName)), w, "UploadHandler")
 			return
 		}
+
+		go func() {
+			h.filePub.Publish(context.Background(), &event.FileEvent{
+				UserID:   sp.UserID,
+				UserName: sp.StorageName,
+				FileName: fileName,
+				Time:     time.Now().Unix(),
+				Action:   event.Action_Add,
+			})
+		}()
 	}
 
 	w.WriteHeader(http.StatusOK)

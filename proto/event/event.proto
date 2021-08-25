@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package event;
+
+option go_package = "github.com/Mikhalevich/filesharing/proto/event";
+
+enum Action {
+    Add = 0;
+    Remove = 1;
+}
+
+message FileEvent {
+    int64 userID = 1;
+    string userName = 2;
+    string fileName = 3;
+    int64 time = 4;
+    int64 size = 5;
+    Action action = 6;
+}

@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Mikhalevich/filesharing/httpcode"
+	"github.com/Mikhalevich/filesharing/proto/event"
 )
 
 // RemoveHandler removes current file from storage
@@ -31,6 +34,16 @@ func (h *Handler) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 		h.Error(httpcode.NewWrapInternalServerError(err, fmt.Sprintf("unable to remove file: %s from storage: %s", fileName, sp.StorageName)), w, "RemoveHandler")
 		return
 	}
+
+	go func() {
+		h.filePub.Publish(context.Background(), &event.FileEvent{
+			UserID:   sp.UserID,
+			UserName: sp.StorageName,
+			FileName: fileName,
+			Time:     time.Now().Unix(),
+			Action:   event.Action_Remove,
+		})
+	}()
 
 	w.WriteHeader(http.StatusOK)
 }
