@@ -7,3 +7,6 @@
 [submodule "filesharing-web-service"]
 	path = filesharing-web-service
 	url = git@github.com:Mikhalevich/filesharing-web-service.git
+[submodule "filesharing-history-service"]
+	path = filesharing-history-service
+	url = git@github.com:Mikhalevich/filesharing-history-service.git
