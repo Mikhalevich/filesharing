@@ -10,3 +10,6 @@
 [submodule "filesharing-history-service"]
 	path = filesharing-history-service
 	url = git@github.com:Mikhalevich/filesharing-history-service.git
+[submodule "filesharing-tg-service"]
+	path = filesharing-tg-service
+	url = git@github.com:Mikhalevich/filesharing-tg-service.git
