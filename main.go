@@ -13,6 +13,8 @@ import (
 	"github.com/Mikhalevich/filesharing/wrapper"
 	"github.com/asim/go-micro/v3"
 	"github.com/sirupsen/logrus"
+
+	_ "github.com/asim/go-micro/plugins/broker/nats/v3"
 )
 
 type params struct {
@@ -67,7 +69,6 @@ func main() {
 	}
 
 	filePub := micro.NewEvent("filesharing.file.event", microService.Client())
-
 	h := handler.NewHandler(authService, wrapper.NewGRPCFileServiceClient(fsClient), logger, filePub)
 
 	r := router.NewRouter(true, h, logger)

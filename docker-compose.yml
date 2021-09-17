@@ -19,6 +19,8 @@ services:
       FS_FILE_SERVICE_NAME: "filesharing.fileservice"
       FS_AUTH_SERVICE_NAME: "filesharing.authservice"
       FS_SESSION_EXPIRE_PERIOD_SEC: "2592000"
+      MICRO_BROKER: "nats"
+      MICRO_BROKER_ADDRESS: "natsd:4222"
     depends_on:
       - file_service
       - auth_service
@@ -40,6 +42,13 @@ services:
       AS_TOKEN_EXPIRE_PERIOD_SEC: "2592000"
     depends_on:
       - dbpg
+  telegram_bot_service:
+    build: filesharing-tg-service
+    environment:
+      FS_SERVICE_NAME: "filesharing.tgservice"
+      FS_TG_BOT_TOKEN: ""
+      MICRO_BROKER: "nats"
+      MICRO_BROKER_ADDRESS: "natsd:4222"
   dbpg:
     image: postgres
     ports:
@@ -50,6 +59,10 @@ services:
       POSTGRES_PASSWORD: 123456
     volumes:
       - filesharing-db-data:/var/lib/postgresql/data/
+  natsd:
+    image: nats:latest
+    ports:
+     - 4222:4222
   # pgadmin:
   #   image: dpage/pgadmin4
   #   depends_on:
