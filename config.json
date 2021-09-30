@@ -1,9 +1,9 @@
 {
     "host": ":8080",
     "time": "23:59",
-    "storage": "storage",
+    "storage": "/data/storage",
     "permanent_dir": "permanent",
-    "temp_dir": "tmp/Duplo",
+    "temp_dir": "/data/tmp",
     "allow_private": true,
     "db": {
         "host": "mongodb://mongo:27017"
