@@ -10,9 +10,9 @@ import (
 	"github.com/Mikhalevich/filesharing/proto/auth"
 	"github.com/Mikhalevich/filesharing/proto/file"
 	"github.com/Mikhalevich/filesharing/router"
+	"github.com/Mikhalevich/filesharing/service"
 	"github.com/Mikhalevich/filesharing/wrapper"
 	"github.com/asim/go-micro/v3"
-	"github.com/sirupsen/logrus"
 
 	_ "github.com/asim/go-micro/plugins/broker/nats/v3"
 )
@@ -45,38 +45,36 @@ func loadParams() (*params, error) {
 }
 
 func main() {
-	logger := logrus.New()
-	logger.SetOutput(os.Stdout)
-	logger.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
-	})
+	srv := service.New("filesharig")
 
 	params, err := loadParams()
 	if err != nil {
-		logger.Errorln(fmt.Errorf("load params error: %w", err))
+		srv.Logger().Errorf("load params error: %v", err)
 		return
 	}
 
-	microService := micro.NewService()
-	microService.Init()
-	fsClient := file.NewFileService(params.FileServiceName, microService.Client())
-	authClient := auth.NewAuthService(params.AuthServiceName, microService.Client())
+	var r *router.Router
+	if err := srv.RegisterHandler(func(srv micro.Service, s service.Servicer) error {
+		fsClient := file.NewFileService(params.FileServiceName, srv.Client())
+		authClient := auth.NewAuthService(params.AuthServiceName, srv.Client())
 
-	authService, err := wrapper.NewGRPCAuthServiceClient(authClient)
-	if err != nil {
-		logger.Errorln(fmt.Errorf("creating auth service client error: %w", err))
+		authService, err := wrapper.NewGRPCAuthServiceClient(authClient)
+		if err != nil {
+			return fmt.Errorf("creating auth service client error: %v", err)
+		}
+
+		filePub := micro.NewEvent("filesharing.file.event", srv.Client())
+		h := handler.NewHandler(authService, wrapper.NewGRPCFileServiceClient(fsClient), s.Logger(), filePub)
+
+		r = router.NewRouter(true, h, s.Logger())
+		return nil
+	}); err != nil {
 		return
 	}
 
-	filePub := micro.NewEvent("filesharing.file.event", microService.Client())
-	h := handler.NewHandler(authService, wrapper.NewGRPCFileServiceClient(fsClient), logger, filePub)
+	srv.Logger().Infof("Running params = %v", params)
 
-	r := router.NewRouter(true, h, logger)
-
-	logger.Infof("Running params = %v", params)
-
-	err = http.ListenAndServe(params.Host, r.Handler())
-	if err != nil {
-		logger.Errorln(err)
+	if err = http.ListenAndServe(params.Host, r.Handler()); err != nil {
+		srv.Logger().Errorf("run service error: %v", err)
 	}
 }

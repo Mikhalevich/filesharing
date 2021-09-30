@@ -12,7 +12,6 @@ import (
 	"github.com/Mikhalevich/filesharing/proto/file"
 	"github.com/Mikhalevich/filesharing/proto/types"
 	"github.com/asim/go-micro/v3"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -46,16 +45,27 @@ type Storager interface {
 	IsStorageExists(storage string) bool
 }
 
+type Logger interface {
+	Debugf(format string, args ...interface{})
+	Infof(format string, args ...interface{})
+	Warnf(format string, args ...interface{})
+	Errorf(format string, args ...interface{})
+	Debug(args ...interface{})
+	Info(args ...interface{})
+	Warn(args ...interface{})
+	Error(args ...interface{})
+}
+
 // Handler represents gateway handler
 type Handler struct {
 	auth    Authentificator
 	storage Storager
-	logger  *logrus.Logger
+	logger  Logger
 	filePub micro.Event
 }
 
 // NewHandler constructor for Handler
-func NewHandler(a Authentificator, s Storager, l *logrus.Logger, filePub micro.Event) *Handler {
+func NewHandler(a Authentificator, s Storager, l Logger, filePub micro.Event) *Handler {
 	return &Handler{
 		auth:    a,
 		storage: s,

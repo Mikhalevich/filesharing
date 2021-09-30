@@ -7,7 +7,6 @@ import (
 	"github.com/Mikhalevich/filesharing/ctxinfo"
 	"github.com/Mikhalevich/filesharing/proto/types"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 )
 
 type Route struct {
@@ -33,15 +32,26 @@ type handler interface {
 	RecoverMiddleware(next http.Handler) http.Handler
 }
 
+type Logger interface {
+	Debugf(format string, args ...interface{})
+	Infof(format string, args ...interface{})
+	Warnf(format string, args ...interface{})
+	Errorf(format string, args ...interface{})
+	Debug(args ...interface{})
+	Info(args ...interface{})
+	Warn(args ...interface{})
+	Error(args ...interface{})
+}
+
 type Router struct {
 	enableAuth bool
 	routes     []Route
 	h          handler
 	ps         map[string]*types.User
-	logger     *logrus.Logger
+	logger     Logger
 }
 
-func NewRouter(ea bool, handl handler, l *logrus.Logger) *Router {
+func NewRouter(ea bool, handl handler, l Logger) *Router {
 	return &Router{
 		enableAuth: ea,
 		h:          handl,
