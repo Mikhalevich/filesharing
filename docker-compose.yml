@@ -37,9 +37,9 @@ services:
   auth_service:
     build: filesharing-auth-service
     environment:
-      AS_SERVICE_NAME: "filesharing.authservice"
-      AS_DB_CONNECTION_STRING: "user=postgres password=123456 dbname=auth host=dbpg port=5432 sslmode=disable"
-      AS_TOKEN_EXPIRE_PERIOD_SEC: "2592000"
+      FS_SERVICE_NAME: "filesharing.authservice"
+      FS_DB_CONNECTION_STRING: "user=postgres password=123456 dbname=auth host=dbpg port=5432 sslmode=disable"
+      FS_TOKEN_EXPIRE_PERIOD_SEC: "2592000"
     depends_on:
       - dbpg
   telegram_bot_service:
