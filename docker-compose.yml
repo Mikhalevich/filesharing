@@ -38,7 +38,7 @@ services:
     build: filesharing-auth-service
     environment:
       AS_SERVICE_NAME: "filesharing.authservice"
-      AS_DB_CONNECTION_STRING: "user=postgres password=123456 dbname=filesharing host=dbpg port=5432 sslmode=disable"
+      AS_DB_CONNECTION_STRING: "user=postgres password=123456 dbname=auth host=dbpg port=5432 sslmode=disable"
       AS_TOKEN_EXPIRE_PERIOD_SEC: "2592000"
     depends_on:
       - dbpg
@@ -47,6 +47,8 @@ services:
     environment:
       FS_SERVICE_NAME: "filesharing.tgservice"
       FS_TG_BOT_TOKEN: ""
+      FS_STORAGE_NAME: "common"
+      FS_DB_CONNECTION_STRING: "user=postgres password=123456 dbname=tg host=dbpg port=5432 sslmode=disable"
       MICRO_BROKER: "nats"
       MICRO_BROKER_ADDRESS: "natsd:4222"
   dbpg:
@@ -54,10 +56,11 @@ services:
     ports:
       - 5432:5432
     environment:
-      POSTGRES_DB: filesharing
+      POSTGRES_MULTIPLE_DATABASES: auth,tg
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123456
     volumes:
+      - ./docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
       - filesharing-db-data:/var/lib/postgresql/data/
   natsd:
     image: nats:latest

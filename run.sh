@@ -10,6 +10,6 @@ then
     popd
 fi
 
-docker-compose up --build
+docker-compose up --build --remove-orphans
 
 popd
