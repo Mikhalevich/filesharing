@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -30,12 +32,16 @@ type microService struct {
 	l   *logrus.Logger
 }
 
-func New(name string) *microService {
+func New(name string) (*microService, error) {
 	l := logrus.New()
 	l.SetOutput(os.Stdout)
-	l.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
-	})
+	l.SetFormatter(&logrus.JSONFormatter{})
+
+	f, err := os.OpenFile(fmt.Sprintf("/log/%s.log", name), os.O_WRONLY|os.O_CREATE, 0755)
+	if err != nil {
+		return nil, err
+	}
+	l.SetOutput(io.MultiWriter(os.Stdout, f))
 
 	srv := micro.NewService(
 		micro.Name(name),
@@ -47,7 +53,7 @@ func New(name string) *microService {
 	return &microService{
 		srv: srv,
 		l:   l,
-	}
+	}, nil
 }
 
 func makeLoggerWrapper(l Logger) server.HandlerWrapper {

@@ -45,7 +45,11 @@ func loadParams() (*params, error) {
 }
 
 func main() {
-	srv := service.New("filesharig")
+	srv, err := service.New("filesharig")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	params, err := loadParams()
 	if err != nil {
