@@ -53,7 +53,7 @@ func main() {
 
 	params, err := loadParams()
 	if err != nil {
-		srv.Logger().Errorf("load params error: %v", err)
+		srv.Logger().WithError(err).Error("failed to load parameters")
 		return
 	}
 
@@ -73,12 +73,15 @@ func main() {
 		r = router.NewRouter(true, h, s.Logger())
 		return nil
 	}); err != nil {
+		srv.Logger().WithError(err).Error("failed to register handler")
 		return
 	}
 
-	srv.Logger().Infof("Running params = %v", params)
+	srv.Logger().WithFields(map[string]interface{}{
+		"params": params,
+	}).Infof("running service")
 
 	if err = http.ListenAndServe(params.Host, r.Handler()); err != nil {
-		srv.Logger().Errorf("run service error: %v", err)
+		srv.Logger().WithError(err).Error("failed to run service")
 	}
 }
