@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package history;
+
+option go_package = "github.com/Mikhalevich/filesharing/pkg/proto/history";
+
+import "event/event.proto";
+
+service HistoryService {
+    rpc List(ListRequest) returns (ListResponse) {}
+}
+
+message ListRequest {
+    int64 UserID = 1;
+}
+
+message ListResponse {
+    repeated event.FileEvent files = 1;
+}

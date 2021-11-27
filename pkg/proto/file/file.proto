@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package file;
+
+option go_package = "github.com/Mikhalevich/filesharing/pkg/proto/file";
+
+service FileService {
+  rpc List(ListRequest) returns (ListResponse) {}
+  rpc GetFile(FileRequest) returns (stream Chunk) {}
+  rpc UploadFile(stream FileUploadRequest) returns (stream File) {} 
+  rpc RemoveFile(FileRequest) returns (EmptyResponse) {}
+  rpc IsStorageExists(IsStorageExistsRequest) returns (BoolResponse) {}
+  rpc CreateStorage(CreateStorageRequest) returns (CreateStorageResponse) {}
+}
+
+message EmptyResponse {
+
+}
+
+message ListRequest {
+  string storage = 1;
+  bool isPermanent = 2;
+}
+
+message File {
+    string name = 1;
+    int64 size = 2;
+    int64 modTime = 3;
+}
+
+message ListResponse {
+  repeated File files = 1;
+}
+
+message FileRequest {
+  string storage = 1;
+  bool isPermanent = 2;
+  string fileName = 3;
+}
+
+message Chunk {
+  bytes content = 1;
+}
+
+message FileUploadRequest {
+  oneof fileChunk {
+    FileRequest metadata = 1;
+    bytes content = 2;
+    bool end = 3;
+  }
+}
+
+message IsStorageExistsRequest {
+  string name = 1;
+}
+
+message BoolResponse {
+  bool flag = 1;
+}
+
+message CreateStorageRequest {
+  string name = 1;
+  bool withPermanent = 2;
+}
+
+enum StorageStatus {
+  Ok = 0;
+  AlreadyExist = 1;
+}
+
+message CreateStorageResponse {
+  StorageStatus status = 1;
+}
