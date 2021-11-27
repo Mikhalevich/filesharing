@@ -2,14 +2,13 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"os"
 	"time"
 
 	"github.com/asim/go-micro/v3"
 	"github.com/asim/go-micro/v3/server"
 	"github.com/sirupsen/logrus"
+	"go.elastic.co/ecslogrus"
 )
 
 type Logger interface {
@@ -35,13 +34,7 @@ type microService struct {
 func New(name string) (*microService, error) {
 	l := logrus.New()
 	l.SetOutput(os.Stdout)
-	l.SetFormatter(&logrus.JSONFormatter{})
-
-	f, err := os.OpenFile(fmt.Sprintf("/log/%s.log", name), os.O_WRONLY|os.O_CREATE, 0755)
-	if err != nil {
-		return nil, err
-	}
-	l.SetOutput(io.MultiWriter(os.Stdout, f))
+	l.SetFormatter(&ecslogrus.Formatter{})
 
 	srv := micro.NewService(
 		micro.Name(name),
