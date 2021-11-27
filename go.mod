@@ -8,6 +8,6 @@ require (
 	github.com/asim/go-micro/v3 v3.6.0
 	github.com/gorilla/mux v1.8.0
 	github.com/sirupsen/logrus v1.8.1
-	go.elastic.co/ecslogrus v1.0.0 // indirect
+	go.elastic.co/ecslogrus v1.0.0
 	google.golang.org/protobuf v1.27.1
 )
