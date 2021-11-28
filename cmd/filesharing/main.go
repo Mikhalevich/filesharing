@@ -79,7 +79,7 @@ func main() {
 
 	srv.Logger().WithFields(map[string]interface{}{
 		"params": params,
-	}).Infof("running service")
+	}).Info("running service")
 
 	if err = http.ListenAndServe(params.Host, r.Handler()); err != nil {
 		srv.Logger().WithError(err).Error("failed to run service")

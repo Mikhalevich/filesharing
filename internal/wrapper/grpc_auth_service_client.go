@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Mikhalevich/filesharing-auth-service/token"
+	"github.com/Mikhalevich/filesharing-auth-service/pkg/token"
 	"github.com/Mikhalevich/filesharing/internal/handler"
 	"github.com/Mikhalevich/filesharing/pkg/proto/auth"
 	"github.com/Mikhalevich/filesharing/pkg/proto/types"

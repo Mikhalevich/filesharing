@@ -63,6 +63,7 @@ func (ms *microService) RegisterHandler(fn func(srv micro.Service, s Servicer) e
 }
 
 func (ms *microService) Run() error {
+	ms.l.Info("server started")
 	if err := ms.srv.Run(); err != nil {
 		ms.l.WithError(err).Error("failed to run service")
 		return err
