@@ -8,6 +8,7 @@ import (
 	"github.com/asim/go-micro/v3"
 	"github.com/asim/go-micro/v3/server"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Servicer interface {
@@ -30,6 +31,8 @@ func Run(name string, host string, setup func(srv micro.Service, s Servicer) err
 		l:      l,
 		router: mux.NewRouter().StrictSlash(true),
 	}
+
+	srvOptions.router.Path("/metrics/").Handler(promhttp.Handler())
 
 	if err := setup(srv, &srvOptions); err != nil {
 		l.WithError(err).Error("failed to setup service")

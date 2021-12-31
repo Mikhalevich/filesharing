@@ -86,6 +86,8 @@ github.com/asim/go-micro/v3/util/signal
 github.com/asim/go-micro/v3/util/socket
 github.com/asim/go-micro/v3/util/tls
 github.com/asim/go-micro/v3/util/wrapper
+# github.com/beorn7/perks v1.0.1
+github.com/beorn7/perks/quantile
 # github.com/bitly/go-simplejson v0.5.0
 github.com/bitly/go-simplejson
 # github.com/cpuguy83/go-md2man/v2 v2.0.1
@@ -172,6 +174,8 @@ github.com/jbenet/go-context/io
 github.com/kevinburke/ssh_config
 # github.com/magefile/mage v1.9.0
 github.com/magefile/mage/mg
+# github.com/matttproud/golang_protobuf_extensions v1.0.1
+github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/micro/cli/v2 v2.1.2
 github.com/micro/cli/v2
 # github.com/miekg/dns v1.1.43
@@ -198,6 +202,20 @@ github.com/oxtoacart/bpool
 github.com/patrickmn/go-cache
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
+# github.com/prometheus/client_golang v1.1.0
+## explicit
+github.com/prometheus/client_golang/prometheus
+github.com/prometheus/client_golang/prometheus/internal
+github.com/prometheus/client_golang/prometheus/promhttp
+# github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
+github.com/prometheus/client_model/go
+# github.com/prometheus/common v0.6.0
+github.com/prometheus/common/expfmt
+github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
+github.com/prometheus/common/model
+# github.com/prometheus/procfs v0.0.3
+github.com/prometheus/procfs
+github.com/prometheus/procfs/internal/fs
 # github.com/russross/blackfriday/v2 v2.1.0
 github.com/russross/blackfriday/v2
 # github.com/sergi/go-diff v1.2.0
