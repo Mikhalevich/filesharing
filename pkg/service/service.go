@@ -1,72 +1,37 @@
 package service
 
 import (
-	"context"
-	"time"
-
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/server"
+	"github.com/gorilla/mux"
 )
 
-type Servicer interface {
-	Logger() Logger
-}
+type Option func(o *service)
 
-type microService struct {
-	srv micro.Service
-	l   Logger
-}
-
-func New(name string) (*microService, error) {
-	l := newLoggerWrapper(name)
-
-	srv := micro.NewService(
-		micro.Name(name),
-		micro.WrapHandler(makeLoggerWrapper(l)),
-	)
-
-	srv.Init()
-
-	return &microService{
-		srv: srv,
-		l:   l,
-	}, nil
-}
-
-func makeLoggerWrapper(l Logger) server.HandlerWrapper {
-	return func(fn server.HandlerFunc) server.HandlerFunc {
-		return func(ctx context.Context, req server.Request, rsp interface{}) error {
-			l.Infof("processing %s", req.Method())
-			start := time.Now()
-			defer l.Infof("end processing %s, time = %v", req.Method(), time.Since(start))
-			err := fn(ctx, req, rsp)
-			if err != nil {
-				l.WithError(err).WithFields(map[string]interface{}{
-					"method": req.Method(),
-				}).Error("failed to execute handler")
-			}
-			return err
-		}
+func WithPostAction(fn func()) Option {
+	return func(o *service) {
+		o.postActions = append(o.postActions, fn)
 	}
 }
 
-func (ms *microService) Logger() Logger {
-	return ms.l
+type service struct {
+	l           Logger
+	router      *mux.Router
+	postActions []func()
 }
 
-func (ms *microService) RegisterHandler(fn func(srv micro.Service, s Servicer) error) error {
-	if err := fn(ms.srv, ms); err != nil {
-		ms.l.WithError(err).Error("failed to register handler")
-		return err
-	}
-	return nil
+func (s *service) Logger() Logger {
+	return s.l
 }
 
-func (ms *microService) Run() error {
-	ms.l.Info("server started")
-	if err := ms.srv.Run(); err != nil {
-		ms.l.WithError(err).Error("failed to run service")
-		return err
+func (s *service) Router() *mux.Router {
+	return s.router
+}
+
+func (s *service) AddOption(opt Option) {
+	opt(s)
+}
+
+func (s *service) runPostActions() {
+	for _, action := range s.postActions {
+		action()
 	}
-	return nil
 }

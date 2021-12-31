@@ -165,10 +165,9 @@ func (r *Router) storeRouterParametes(isPublic bool, isPermanent bool, next http
 	})
 }
 
-func (r *Router) Handler() http.Handler {
+func (r *Router) MakeRoutes(router *mux.Router) {
 	r.makeRoutes()
 
-	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range r.routes {
 		muxRoute := router.NewRoute()
 		if route.IsPrefix {
@@ -192,6 +191,4 @@ func (r *Router) Handler() http.Handler {
 
 		muxRoute.Handler(handler)
 	}
-
-	return router
 }

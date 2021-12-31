@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 
 	_ "github.com/asim/go-micro/plugins/broker/nats/v3"
@@ -45,20 +44,13 @@ func loadParams() (*params, error) {
 }
 
 func main() {
-	srv, err := service.New("filesharig")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
 	params, err := loadParams()
 	if err != nil {
-		srv.Logger().WithError(err).Error("failed to load parameters")
+		fmt.Printf("failed to load parameters: %v\n", err)
 		return
 	}
 
-	var r *router.Router
-	if err := srv.RegisterHandler(func(srv micro.Service, s service.Servicer) error {
+	service.Run("filesharig", params.Host, func(srv micro.Service, s service.Servicer) error {
 		fsClient := file.NewFileService(params.FileServiceName, srv.Client())
 		authClient := auth.NewAuthService(params.AuthServiceName, srv.Client())
 
@@ -70,18 +62,8 @@ func main() {
 		filePub := micro.NewEvent("filesharing.file.event", srv.Client())
 		h := handler.NewHandler(authService, wrapper.NewGRPCFileServiceClient(fsClient), s.Logger(), filePub)
 
-		r = router.NewRouter(true, h, s.Logger())
+		router.NewRouter(true, h, s.Logger()).MakeRoutes(s.Router())
+
 		return nil
-	}); err != nil {
-		srv.Logger().WithError(err).Error("failed to register handler")
-		return
-	}
-
-	srv.Logger().WithFields(map[string]interface{}{
-		"params": params,
-	}).Info("running service")
-
-	if err = http.ListenAndServe(params.Host, r.Handler()); err != nil {
-		srv.Logger().WithError(err).Error("failed to run service")
-	}
+	})
 }
