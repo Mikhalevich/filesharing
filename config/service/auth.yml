@@ -1,0 +1,4 @@
+service:
+  port: 8001
+db: "user=postgres password=123456 dbname=auth host=dbpg port=5432 sslmode=disable"
+token_expire_period: 2592000

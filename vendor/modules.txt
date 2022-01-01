@@ -1,7 +1,7 @@
 # github.com/Microsoft/go-winio v0.5.0
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
-# github.com/Mikhalevich/filesharing-auth-service v0.0.0-20211128215609-5339bba951ae
+# github.com/Mikhalevich/filesharing-auth-service v0.0.0-20220101192854-76dd8dc14345
 ## explicit
 github.com/Mikhalevich/filesharing-auth-service/pkg/token
 # github.com/ProtonMail/go-crypto v0.0.0-20210920160938-87db9fbc61c7

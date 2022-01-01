@@ -53,13 +53,15 @@ github.com/Mikhalevich/filesharing v0.0.0-20210713210515-73c0df3e69ff/go.mod h1:
 github.com/Mikhalevich/filesharing v0.0.0-20210823124302-9815d8d1761c/go.mod h1:vwZNOF+g9P96teZKClz7MLrj1M+5oP/fzpzSGdcESSY=
 github.com/Mikhalevich/filesharing v0.0.0-20210823194614-91f994d1f2d9/go.mod h1:n5r3RoaOf0VAeRZD5Fz1Y5qaGTMoZubwj2PKxThXBY8=
 github.com/Mikhalevich/filesharing v0.0.0-20211127203421-97a4175b1cc5/go.mod h1:8BwDtc6krmA2IzgqseP3T5mFt/9V6cYEZhdZcCRNp+w=
+github.com/Mikhalevich/filesharing v0.0.0-20220101154653-d477e2ad8e34/go.mod h1:d/SKMN13+41GjPlSoEnZHuyS2zYAP5B0zqmbebFGslU=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210713170333-b9322ac05455/go.mod h1:ap44UWKjGuBvSPXkR37bd3dbBCR9UtRi2aDygV94KZ0=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210713200756-ad899200b5e7/go.mod h1:DNF02bXuiThIt0StUx1KANsUdWbKGVqmYExFbwbkZAs=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210820132202-552026a6981e/go.mod h1:z/JLjelIkd1Mqd0k3xb1gJfWr1ZgyUkTd8hTm4QscyQ=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210823130957-262940af1b30/go.mod h1:OubsBGFxjHJdErmMNy/rlQkdc4NGzCa9pS9HagtZryE=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20210824202157-826ac9282cf8/go.mod h1:HGtBRcivwukdB3VEQ/U64Fa45dg6lOP8+XwmXUzM/8Y=
-github.com/Mikhalevich/filesharing-auth-service v0.0.0-20211128215609-5339bba951ae h1:JOcZdkLScAa1iadbu3EA1CftMPlyTszgso8erOgMaag=
 github.com/Mikhalevich/filesharing-auth-service v0.0.0-20211128215609-5339bba951ae/go.mod h1:eDuMhsmiDaheP2pAYm16dejF80Dl0t9d4N4a/jg1BHQ=
+github.com/Mikhalevich/filesharing-auth-service v0.0.0-20220101192854-76dd8dc14345 h1:a9AVEVfUPsX7PL6fOGHDvLflF65M8FWschx2FM+cEzE=
+github.com/Mikhalevich/filesharing-auth-service v0.0.0-20220101192854-76dd8dc14345/go.mod h1:Urnjr+ZhXEB7BflsJsR3OQwjYfDYJA5T5BlEWyDrOgc=
 github.com/Mikhalevich/repeater v0.0.0-20211001095921-a918445112cf/go.mod h1:5R6XpRNU1jQbGV89xIVoW3zuv3hbfum6bLjplcSonFw=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/OpenDNS/vegadns2client v0.0.0-20180418235048-a3fa4a771d87/go.mod h1:iGLljf5n9GjT6kc0HBvyI1nOKnGQbNB66VzSNbK5iks=

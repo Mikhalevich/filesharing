@@ -28,7 +28,7 @@ services:
       MICRO_BROKER_ADDRESS: "natsd:4222"
     depends_on:
       - file_service
-      - auth_service
+      - auth
     volumes:
       - ./config/service/filesharing.yml:/usr/share/config/filesharing.yml
   file_service:
@@ -41,7 +41,7 @@ services:
       FS_CLEAN_TIME: "23:59"
     volumes:
       - filesharing-file-service-storage:/data/
-  auth_service:
+  auth:
     build: filesharing-auth-service
     labels:
       co.elastic.logs/enabled: true
@@ -49,12 +49,15 @@ services:
       co.elastic.logs/json.overwrite_keys: true
       co.elastic.logs/json.add_error_key: true
       co.elastic.logs/json.expand_keys: true
+    ports:
+      - "8001:8001"
     environment:
       FS_SERVICE_NAME: "filesharing.authservice"
-      FS_DB_CONNECTION_STRING: "user=postgres password=123456 dbname=auth host=dbpg port=5432 sslmode=disable"
-      FS_TOKEN_EXPIRE_PERIOD_SEC: "2592000"
+      FS_CONFIG_FILE: "/usr/share/config/auth.yml"
     depends_on:
       - dbpg
+    volumes:
+      - ./config/service/auth.yml:/usr/share/config/auth.yml
   telegram_bot_service:
     build: filesharing-tg-service
     environment:
