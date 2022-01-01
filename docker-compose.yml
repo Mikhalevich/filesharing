@@ -49,8 +49,6 @@ services:
       co.elastic.logs/json.overwrite_keys: true
       co.elastic.logs/json.add_error_key: true
       co.elastic.logs/json.expand_keys: true
-    ports:
-      - "8001:8001"
     environment:
       FS_SERVICE_NAME: "filesharing.authservice"
       FS_CONFIG_FILE: "/usr/share/config/auth.yml"
