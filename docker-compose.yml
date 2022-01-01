@@ -130,6 +130,7 @@ services:
     image: prom/prometheus:v2.24.0
     volumes:
       - ./config/prometheus/:/etc/prometheus/
+      - filesharing-prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -142,6 +143,11 @@ services:
     container_name: grafana
     ports:
       - "3000:3000"
+    volumes:
+      - filesharing-grafana-storage:/var/lib/grafana
 volumes:
   filesharing-file-service-storage:
   filesharing-db-data:
+  filesharing-grafana-storage:
+  filesharing-prometheus-data:
+
