@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/asim/go-micro/v3"
@@ -17,8 +19,15 @@ type Servicer interface {
 	AddOption(opt Option)
 }
 
-func Run(name string, host string, setup func(srv micro.Service, s Servicer) error) {
+func Run(name string, cfg Configer, setup func(srv micro.Service, s Servicer) error) {
 	l := newLoggerWrapper(name)
+
+	if err := loadConfig(cfg, os.Getenv("FS_CONFIG_FILE")); err != nil {
+		l.WithError(err).Error("load config error")
+		return
+	}
+
+	serviceCfg := cfg.Service()
 
 	srv := micro.NewService(
 		micro.Name(name),
@@ -41,15 +50,13 @@ func Run(name string, host string, setup func(srv micro.Service, s Servicer) err
 
 	defer srvOptions.runPostActions()
 
-	if host != "" {
-		go func() {
-			l.Info("http server started")
-			defer l.Info("http server stopped")
-			if err := http.ListenAndServe(host, srvOptions.router); err != nil {
-				l.WithError(err).Error("failed to run http server")
-			}
-		}()
-	}
+	go func() {
+		l.Info("http server started")
+		defer l.Info("http server stopped")
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", serviceCfg.Port), srvOptions.router); err != nil {
+			l.WithError(err).Error("failed to run http server")
+		}
+	}()
 
 	l.Info("server started")
 	if err := srv.Run(); err != nil {

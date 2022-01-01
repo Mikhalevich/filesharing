@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	_ "github.com/asim/go-micro/plugins/broker/nats/v3"
 	"github.com/asim/go-micro/v3"
@@ -16,43 +15,33 @@ import (
 	"github.com/Mikhalevich/filesharing/pkg/service"
 )
 
-type params struct {
-	Host            string
-	FileServiceName string
-	AuthServiceName string
+type config struct {
+	service.Config  `yaml:"service"`
+	FileServiceName string `yaml:"file_service_name"`
+	AuthServiceName string `yaml:"auth_service_name"`
 }
 
-func loadParams() (*params, error) {
-	var p params
+func (c *config) Service() service.Config {
+	return c.Config
+}
 
-	p.Host = os.Getenv("FS_HOST")
-	if p.Host == "" {
-		return nil, errors.New("host name is empty, please specify FS_HOST variable")
+func (c *config) Validate() error {
+	if c.FileServiceName == "" {
+		return errors.New("file_service_name is required")
 	}
 
-	p.FileServiceName = os.Getenv("FS_FILE_SERVICE_NAME")
-	if p.FileServiceName == "" {
-		return nil, errors.New("file service name is empty, please specify FS_FILE_SERVICE_NAME variable")
+	if c.AuthServiceName == "" {
+		return errors.New("auth_service_name is required")
 	}
 
-	p.AuthServiceName = os.Getenv("FS_AUTH_SERVICE_NAME")
-	if p.AuthServiceName == "" {
-		return nil, errors.New("auth service name is empty, please specify FS_AUTH_SERVICE_NAME variable")
-	}
-
-	return &p, nil
+	return nil
 }
 
 func main() {
-	params, err := loadParams()
-	if err != nil {
-		fmt.Printf("failed to load parameters: %v\n", err)
-		return
-	}
-
-	service.Run("filesharig", params.Host, func(srv micro.Service, s service.Servicer) error {
-		fsClient := file.NewFileService(params.FileServiceName, srv.Client())
-		authClient := auth.NewAuthService(params.AuthServiceName, srv.Client())
+	var cfg config
+	service.Run("filesharig", &cfg, func(srv micro.Service, s service.Servicer) error {
+		fsClient := file.NewFileService(cfg.FileServiceName, srv.Client())
+		authClient := auth.NewAuthService(cfg.AuthServiceName, srv.Client())
 
 		authService, err := wrapper.NewGRPCAuthServiceClient(authClient)
 		if err != nil {
