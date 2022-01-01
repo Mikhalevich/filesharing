@@ -150,4 +150,3 @@ volumes:
   filesharing-db-data:
   filesharing-grafana-storage:
   filesharing-prometheus-data:
-
