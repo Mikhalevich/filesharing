@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=vendor -a -installsuffix
 FROM scratch
 COPY --from=builder /go/bin/filesharing /app/filesharing
 
-EXPOSE 8080
+EXPOSE 8000
 
 WORKDIR /app/
 ENTRYPOINT ["./filesharing"]

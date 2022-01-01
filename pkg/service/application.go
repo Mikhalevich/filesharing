@@ -22,6 +22,11 @@ type Servicer interface {
 func Run(name string, cfg Configer, setup func(srv micro.Service, s Servicer) error) {
 	l := newLoggerWrapper(name)
 
+	if name == "" {
+		l.Error("service name is empty")
+		return
+	}
+
 	if err := loadConfig(cfg, os.Getenv("FS_CONFIG_FILE")); err != nil {
 		l.WithError(err).Error("load config error")
 		return

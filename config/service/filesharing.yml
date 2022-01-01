@@ -1,0 +1,4 @@
+service:
+  port: 8000
+file_service_name: "filesharing.fileservice"
+auth_service_name: "filesharing.authservice"

@@ -11,7 +11,9 @@ services:
     depends_on:
       - filesharing
   filesharing:
-    build: .
+    build:
+      context: ./
+      dockerfile: Dockerfile
     labels:
       co.elastic.logs/enabled: true
       co.elastic.logs/json.keys_under_root: true
@@ -21,15 +23,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      FS_HOST: ":8000"
-      FS_FILE_SERVICE_NAME: "filesharing.fileservice"
-      FS_AUTH_SERVICE_NAME: "filesharing.authservice"
-      FS_SESSION_EXPIRE_PERIOD_SEC: "2592000"
+      FS_CONFIG_FILE: "/usr/share/config/filesharing.yml"
       MICRO_BROKER: "nats"
       MICRO_BROKER_ADDRESS: "natsd:4222"
     depends_on:
       - file_service
       - auth_service
+    volumes:
+      - ./config/service/filesharing.yml:/usr/share/config/filesharing.yml
   file_service:
     build: filesharing-file-service
     environment:
