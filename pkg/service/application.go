@@ -55,17 +55,32 @@ func Run(name string, cfg Configer, setup func(srv micro.Service, s Servicer) er
 
 	defer srvOptions.runPostActions()
 
+	httpServer := http.Server{
+		Addr:    fmt.Sprintf(":%d", serviceCfg.Port),
+		Handler: srvOptions.router,
+	}
+
 	go func() {
-		l.Info("http server started")
+		l.Infof("http server started at %d", serviceCfg.Port)
 		defer l.Info("http server stopped")
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", serviceCfg.Port), srvOptions.router); err != nil {
+		if err := httpServer.ListenAndServe(); err != nil {
 			l.WithError(err).Error("failed to run http server")
+			return
 		}
 	}()
 
-	l.Info("server started")
+	l.Info("rpc server started")
 	if err := srv.Run(); err != nil {
 		l.WithError(err).Error("failed to run service")
+		return
+	}
+	l.Info("rpc server stopped")
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	if err := httpServer.Shutdown(ctx); err != nil {
+		l.WithError(err).Error("failed to shutdown http server")
 		return
 	}
 }
