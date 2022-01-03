@@ -82,7 +82,7 @@ func (h *Handler) Error(err httpcode.Error, w http.ResponseWriter, context strin
 		return
 	}
 
-	h.logger.Error(fmt.Errorf("[%s] %s: %w", context, err.Description(), err))
+	h.logger.Error(fmt.Errorf("[%s] %s: %v", context, err.Description(), err))
 	http.Error(w, err.Description(), err.StatusCode())
 }
 
@@ -185,14 +185,13 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if p.StorageName == "" {
-			h.logger.Error(fmt.Sprintf("Storage name is empty for %s", r.URL))
+		if p.IsPublic {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		if p.IsPublic {
-			next.ServeHTTP(w, r)
+		if p.StorageName == "" {
+			h.Error(httpcode.NewBadRequest("storage name is empty"), w, "CheckAuthMiddleware")
 			return
 		}
 

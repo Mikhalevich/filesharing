@@ -7,16 +7,13 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/Mikhalevich/filesharing/pkg/ctxinfo"
-	"github.com/Mikhalevich/filesharing/pkg/proto/types"
 )
 
-type Route struct {
-	Pattern       string
-	IsPrefix      bool
-	Methods       string
-	Public        bool
-	PermanentPath bool
-	Handler       http.Handler
+type route struct {
+	Pattern string
+	Methods string
+	Public  bool
+	Handler http.Handler
 }
 
 type handler interface {
@@ -44,150 +41,96 @@ type Logger interface {
 	Error(args ...interface{})
 }
 
-type Router struct {
-	enableAuth bool
-	routes     []Route
-	h          handler
-	ps         map[string]*types.User
-	logger     Logger
-}
-
-func NewRouter(ea bool, handl handler, l Logger) *Router {
-	return &Router{
-		enableAuth: ea,
-		h:          handl,
-		logger:     l,
-	}
-}
-
-func (r *Router) makeRoutes() {
-	r.routes = []Route{
+func configure(h handler) []route {
+	return []route{
 		{
 			Pattern: "/register/",
 			Methods: "POST",
 			Public:  true,
-			Handler: http.HandlerFunc(r.h.RegisterHandler),
+			Handler: http.HandlerFunc(h.RegisterHandler),
 		},
 		{
-			Pattern: "/login/{storage}/",
+			Pattern: "/login/",
 			Methods: "POST",
 			Public:  true,
-			Handler: http.HandlerFunc(r.h.LoginHandler),
+			Handler: http.HandlerFunc(h.LoginHandler),
 		},
 		{
-			Pattern: "/{storage}/index.html",
+			Pattern: "/index.html",
 			Methods: "GET",
-			Handler: http.HandlerFunc(r.h.IndexHTMLHandler),
+			Handler: http.HandlerFunc(h.IndexHTMLHandler),
 		},
 		{
-			Pattern:       "/{storage}/permanent/index.html",
-			Methods:       "GET",
-			PermanentPath: true,
-			Handler:       http.HandlerFunc(r.h.IndexHTMLHandler),
-		},
-		{
-			Pattern:       "/{storage}/permanent/{file}/",
-			Methods:       "GET",
-			PermanentPath: true,
-			Handler:       http.HandlerFunc(r.h.GetFileHandler),
-		},
-		{
-			Pattern:       "/{storage}/permanent/",
-			Methods:       "GET",
-			PermanentPath: true,
-			Handler:       http.HandlerFunc(r.h.GetFileList),
-		},
-		{
-			Pattern: "/{storage}/{file}/",
+			Pattern: "/file/",
 			Methods: "GET",
-			Handler: http.HandlerFunc(r.h.GetFileHandler),
+			Handler: http.HandlerFunc(h.GetFileHandler),
 		},
 		{
-			Pattern: "/{storage}/",
+			Pattern: "/list/",
 			Methods: "GET",
-			Handler: http.HandlerFunc(r.h.GetFileList),
+			Handler: http.HandlerFunc(h.GetFileList),
 		},
 		{
-			Pattern: "/{storage}/upload/",
+			Pattern: "/upload/",
 			Methods: "POST",
-			Handler: http.HandlerFunc(r.h.UploadHandler),
+			Handler: http.HandlerFunc(h.UploadHandler),
 		},
 		{
-			Pattern:       "/{storage}/permanent/upload/",
-			Methods:       "POST",
-			PermanentPath: true,
-			Handler:       http.HandlerFunc(r.h.UploadHandler),
-		},
-		{
-			Pattern: "/{storage}/remove/",
+			Pattern: "/remove/",
 			Methods: "POST",
-			Handler: http.HandlerFunc(r.h.RemoveHandler),
+			Handler: http.HandlerFunc(h.RemoveHandler),
 		},
 		{
-			Pattern:       "/{storage}/permanent/remove/",
-			Methods:       "POST",
-			PermanentPath: true,
-			Handler:       http.HandlerFunc(r.h.RemoveHandler),
-		},
-		{
-			Pattern: "/{storage}/shareText/",
+			Pattern: "/shareText/",
 			Methods: "POST",
-			Handler: http.HandlerFunc(r.h.ShareTextHandler),
-		},
-		{
-			Pattern:       "/{storage}/permanent/shareText/",
-			Methods:       "POST",
-			PermanentPath: true,
-			Handler:       http.HandlerFunc(r.h.ShareTextHandler),
+			Handler: http.HandlerFunc(h.ShareTextHandler),
 		},
 	}
 }
 
-func (r *Router) storeRouterParametes(isPublic bool, isPermanent bool, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-		ctx := request.Context()
+func storeParametes(isPublic bool, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 
-		storage := mux.Vars(request)["storage"]
+		storage := r.FormValue("storage")
 		if storage != "" {
 			ctx = ctxinfo.WithUserName(ctx, storage)
-			ctx = ctxinfo.WithPermanentStorage(ctx, isPermanent)
+
+			permanent := r.FormValue("permanent")
+			if permanent != "" {
+				ctx = ctxinfo.WithPermanentStorage(ctx, true)
+			}
 		}
 
 		ctx = ctxinfo.WithPublicStorage(ctx, isPublic)
 
-		fileName := mux.Vars(request)["file"]
+		fileName := r.FormValue("file")
 		if fileName != "" {
 			ctx = ctxinfo.WithFileName(ctx, fileName)
 		}
-		request = request.WithContext(ctx)
+		r = r.WithContext(ctx)
 
-		next.ServeHTTP(w, request)
+		next.ServeHTTP(w, r)
 	})
 }
 
-func (r *Router) MakeRoutes(router *mux.Router) {
-	r.makeRoutes()
-
-	for _, route := range r.routes {
+func MakeRoutes(router *mux.Router, authEnabled bool, h handler, l Logger) {
+	for _, route := range configure(h) {
 		muxRoute := router.NewRoute()
-		if route.IsPrefix {
-			muxRoute.PathPrefix(route.Pattern)
-		} else {
-			muxRoute.Path(route.Pattern)
-		}
+		muxRoute.Path(route.Pattern)
 
 		muxRoute.Methods(strings.Split(route.Methods, ",")...)
 
 		handler := route.Handler
-		if r.enableAuth && !route.Public {
-			handler = r.h.CheckAuthMiddleware(handler)
+		if authEnabled && !route.Public {
+			handler = h.CheckAuthMiddleware(handler)
 		}
 
-		handler = r.h.CreateStorageMiddleware(handler)
+		handler = h.CreateStorageMiddleware(handler)
 
-		handler = r.storeRouterParametes(route.Public, route.PermanentPath, handler)
+		handler = storeParametes(route.Public, handler)
 
-		handler = r.h.RecoverMiddleware(handler)
+		handler = h.RecoverMiddleware(handler)
 
 		muxRoute.Handler(handler)
 	}

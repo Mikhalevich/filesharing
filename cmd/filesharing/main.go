@@ -51,7 +51,7 @@ func main() {
 		filePub := micro.NewEvent("filesharing.file.event", srv.Client())
 		h := handler.NewHandler(authService, wrapper.NewGRPCFileServiceClient(fsClient), s.Logger(), filePub)
 
-		router.NewRouter(true, h, s.Logger()).MakeRoutes(s.Router())
+		router.MakeRoutes(s.Router(), true, h, s.Logger())
 
 		return nil
 	})
