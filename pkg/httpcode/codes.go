@@ -1,7 +1,16 @@
 package httpcode
 
+type Code int
+
 const (
-	HTTPStatusAlreadyExist = 600
-	HTTPStatusNotExist     = 601
-	HTTPStatusNotMatch     = 602
+	CodeInternalError Code = 1
+	CodeInvalidParams Code = 2
+	CodeUnauthorized  Code = 3
+	CodeAlreadyExist  Code = 600
+	CodeNotExist      Code = 601
+	CodeNotMatch      Code = 602
 )
+
+func (c Code) Int() int {
+	return int(c)
+}

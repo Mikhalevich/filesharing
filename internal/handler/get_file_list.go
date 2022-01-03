@@ -12,18 +12,18 @@ import (
 func (h *Handler) GetFileList(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r)
 	if err != nil {
-		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "GetFileList")
+		h.Error(httpcode.NewInvalidParams(err.Error()).WithError(err), w, "GetFileList")
 		return
 	}
 
 	if !h.storage.IsStorageExists(sp.StorageName) {
-		h.Error(httpcode.NewBadRequest(fmt.Sprintf("storage does not exist: %s", sp.StorageName)), w, "GetFileList")
+		h.Error(httpcode.NewInternalError(fmt.Sprintf("storage does not exist: %s", sp.StorageName)), w, "GetFileList")
 		return
 	}
 
 	files, err := h.storage.Files(sp.StorageName, sp.IsPermanent)
 	if err != nil {
-		h.Error(httpcode.NewWrapInternalServerError(err, fmt.Sprintf("unable to get files from storage: %s", sp.StorageName)), w, "GetFileList")
+		h.Error(httpcode.NewInternalError(fmt.Sprintf("unable to get files from storage: %s", sp.StorageName)).WithError(err), w, "GetFileList")
 		return
 	}
 
@@ -43,7 +43,7 @@ func (h *Handler) GetFileList(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(info); err != nil {
-		h.Error(httpcode.NewWrapInternalServerError(err, "json encoder error"), w, "GetFileList")
+		h.Error(httpcode.NewInternalError("json encoder error").WithError(err), w, "GetFileList")
 		return
 	}
 }

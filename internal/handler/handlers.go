@@ -13,6 +13,7 @@ import (
 	"github.com/Mikhalevich/filesharing/pkg/httpcode"
 	"github.com/Mikhalevich/filesharing/pkg/proto/file"
 	"github.com/Mikhalevich/filesharing/pkg/proto/types"
+	"github.com/Mikhalevich/filesharing/pkg/service"
 )
 
 const (
@@ -55,6 +56,8 @@ type Logger interface {
 	Info(args ...interface{})
 	Warn(args ...interface{})
 	Error(args ...interface{})
+	WithField(key string, value interface{}) service.Logger
+	WithError(err error) service.Logger
 }
 
 // Handler represents gateway handler
@@ -75,15 +78,18 @@ func NewHandler(a Authentificator, s Storager, l Logger, filePub micro.Event) *H
 	}
 }
 
-func (h *Handler) Error(err httpcode.Error, w http.ResponseWriter, context string) {
-	if err == nil {
-		h.logger.Error(fmt.Errorf("[%s] empty error", context))
-		http.Error(w, "empty error", http.StatusInternalServerError)
+func (h *Handler) Error(err error, w http.ResponseWriter, context string) {
+	h.logger.WithError(err).
+		WithField("handler", context).
+		Error("handler error")
+
+	var httpErr *httpcode.Error
+	if errors.As(err, &httpErr) {
+		httpErr.WriteJSON(w)
 		return
 	}
 
-	h.logger.Error(fmt.Errorf("[%s] %s: %v", context, err.Description(), err))
-	http.Error(w, err.Description(), err.StatusCode())
+	http.Error(w, "unhadler error", http.StatusInternalServerError)
 }
 
 type storageParameters struct {
@@ -154,7 +160,7 @@ func (h *Handler) RecoverMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if e, ok := recover().(error); ok {
-				h.Error(httpcode.NewWrapInternalServerError(e, "internal server error"), w, "RecoverHandler")
+				h.Error(httpcode.NewInternalError("panic recovered").WithError(e), w, "RecoverHandler")
 				return
 			}
 		}()
@@ -181,7 +187,7 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p, err := h.requestParameters(r)
 		if err != nil {
-			h.Error(httpcode.NewWrapInternalServerError(err, "unable to get request parametes"), w, "CheckAuthMiddleware")
+			h.Error(httpcode.NewInvalidParams("unable to get request parametes").WithError(err), w, "CheckAuthMiddleware")
 			return
 		}
 
@@ -191,7 +197,7 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		if p.StorageName == "" {
-			h.Error(httpcode.NewBadRequest("storage name is empty"), w, "CheckAuthMiddleware")
+			h.Error(httpcode.NewInvalidParams("storage name is empty"), w, "CheckAuthMiddleware")
 			return
 		}
 
@@ -199,7 +205,7 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 		if token == "" {
 			t, err := h.auth.AuthPublicUser(p.StorageName)
 			if err != nil {
-				h.Error(httpcode.NewHTTPError(http.StatusUnauthorized, "unable to get token"), w, "CheckAuthMiddleware")
+				h.Error(httpcode.NewUnauthorized("unable to get token").WithError(err), w, "CheckAuthMiddleware")
 				return
 			}
 			token = t.GetValue()
@@ -210,7 +216,7 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			t, err := h.auth.AuthPublicUser(p.StorageName)
 			if err != nil {
-				h.Error(httpcode.NewHTTPWrapError(err, http.StatusUnauthorized, "unable to get user by token"), w, "CheckAuthMiddleware")
+				h.Error(httpcode.NewUnauthorized("unable to get user by token").WithError(err), w, "CheckAuthMiddleware")
 				return
 			}
 			token = t.GetValue()
@@ -218,7 +224,7 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		if user.Name != p.StorageName {
-			h.Error(httpcode.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("invalid request user = %s, storage = %s", user, p.StorageName)), w, "CheckAuthMiddleware")
+			h.Error(httpcode.NewNotMatchError(fmt.Sprintf("invalid request user = %s, storage = %s", user, p.StorageName)), w, "CheckAuthMiddleware")
 			return
 		}
 
@@ -237,12 +243,12 @@ func (h *Handler) CreateStorageMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p, err := h.requestParameters(r)
 		if err != nil {
-			h.Error(httpcode.NewWrapInternalServerError(err, "unable to get request parametes"), w, "CreateStorageMiddleware")
+			h.Error(httpcode.NewInvalidParams(err.Error()).WithError(err), w, "CreateStorageMiddleware")
 			return
 		}
 		err = h.createIfNotExist(p.StorageName, true)
 		if err != nil {
-			h.Error(httpcode.NewWrapInternalServerError(err, "unable to create storage"), w, "CreateStorageMiddleware")
+			h.Error(httpcode.NewInternalError("unable to create storage").WithError(err), w, "CreateStorageMiddleware")
 			return
 		}
 		next.ServeHTTP(w, r)

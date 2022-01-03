@@ -11,7 +11,7 @@ import (
 func (h *Handler) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r)
 	if err != nil {
-		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "IndexHTMLHandler")
+		h.Error(httpcode.NewInternalError(err.Error()).WithError(err), w, "IndexHTMLHandler")
 		return
 	}
 
@@ -24,7 +24,7 @@ func (h *Handler) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/html")
 	_, err = io.Copy(w, pr)
 	if err != nil {
-		h.Error(httpcode.NewWrapInternalServerError(err, "can't open index.html"), w, "IndexHTMLHandler")
+		h.Error(httpcode.NewInternalError("can't open index.html").WithError(err), w, "IndexHTMLHandler")
 		return
 	}
 }

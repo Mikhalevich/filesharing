@@ -13,23 +13,23 @@ import (
 func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r)
 	if err != nil {
-		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "LoginHandler")
+		h.Error(httpcode.NewInvalidParams(err.Error()).WithError(err), w, "LoginHandler")
 		return
 	}
 
 	if sp.IsPublic {
-		h.Error(httpcode.NewBadRequest(fmt.Sprintf("No need to login into %s", sp.StorageName)), w, "LoginHandler")
+		h.Error(httpcode.NewInvalidParams(fmt.Sprintf("No need to login into %s", sp.StorageName)), w, "LoginHandler")
 		return
 	}
 
 	if sp.StorageName == "" {
-		h.Error(httpcode.NewBadRequest("invalid storage name"), w, "LoginHandler")
+		h.Error(httpcode.NewInvalidParams("invalid storage name"), w, "LoginHandler")
 		return
 	}
 
 	password := r.FormValue("password")
 	if password == "" {
-		h.Error(httpcode.NewBadRequest("invalid password"), w, "LoginHandler")
+		h.Error(httpcode.NewInvalidParams("invalid password"), w, "LoginHandler")
 		return
 	}
 

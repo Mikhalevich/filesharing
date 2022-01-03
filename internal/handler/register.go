@@ -14,13 +14,13 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	if storageName == "" {
-		h.Error(httpcode.NewBadRequest("invalid storage name"), w, "RegisterHandler")
+		h.Error(httpcode.NewInvalidParams("invalid storage name"), w, "RegisterHandler")
 		return
 	}
 
 	sp, err := h.requestParameters(r)
 	if err != nil {
-		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "RegisterHandler")
+		h.Error(httpcode.NewInvalidParams(err.Error()).WithError(err), w, "RegisterHandler")
 		return
 	}
 
@@ -38,7 +38,7 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, ErrAlreadyExist) {
 			h.Error(httpcode.NewAlreadyExistError("storage with this name already exists"), w, "RegisterHandler")
 		}
-		h.Error(httpcode.NewInternalServerError("registration error"), w, "RegisterHandler")
+		h.Error(httpcode.NewInternalError("registration error").WithError(err), w, "RegisterHandler")
 		return
 	}
 
@@ -47,7 +47,7 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	err = h.storage.CreateStorage(storageName, true)
 	if err != nil {
 		if !errors.Is(err, ErrAlreadyExist) {
-			h.Error(httpcode.NewInternalServerError("unable to create storage"), w, "RegisterHandler")
+			h.Error(httpcode.NewInternalError("unable to create storage"), w, "RegisterHandler")
 		}
 		return
 	}

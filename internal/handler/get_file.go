@@ -12,7 +12,7 @@ import (
 func (h *Handler) GetFileHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r)
 	if err != nil {
-		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "GetFileHandler")
+		h.Error(httpcode.NewInvalidParams(err.Error()).WithError(err), w, "GetFileHandler")
 		return
 	}
 
@@ -26,7 +26,7 @@ func (h *Handler) GetFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err = io.Copy(w, pr)
 	if err != nil {
-		h.Error(httpcode.NewWrapInternalServerError(err, "can't open file"), w, "GetFileHandler")
+		h.Error(httpcode.NewInternalError("can't open file").WithError(err), w, "GetFileHandler")
 		return
 	}
 }

@@ -19,6 +19,7 @@ type Logger interface {
 
 	WithContext(ctx context.Context) Logger
 	WithError(err error) Logger
+	WithField(key string, value interface{}) Logger
 	WithFields(map[string]interface{}) Logger
 }
 
@@ -78,6 +79,13 @@ func (lw *loggerWrapper) WithError(err error) Logger {
 		l: lw.l.WithError(err),
 	}
 }
+
+func (lw *loggerWrapper) WithField(key string, value interface{}) Logger {
+	return &loggerWrapper{
+		l: lw.l.WithField(key, value),
+	}
+}
+
 func (lw *loggerWrapper) WithFields(fields map[string]interface{}) Logger {
 	return &loggerWrapper{
 		l: lw.l.WithFields(fields),

@@ -16,13 +16,13 @@ import (
 func (h *Handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r)
 	if err != nil {
-		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "UploadHandler")
+		h.Error(httpcode.NewInvalidParams(err.Error()).WithError(err), w, "UploadHandler")
 		return
 	}
 
 	mr, err := r.MultipartReader()
 	if err != nil {
-		h.Error(httpcode.NewWrapInternalServerError(err, "request data error"), w, "UploadHandler")
+		h.Error(httpcode.NewInternalError("request data error").WithError(fmt.Errorf("multipart reader: %w", err)), w, "UploadHandler")
 		return
 	}
 
@@ -31,7 +31,8 @@ func (h *Handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, io.EOF) {
 			break
 		} else if err != nil {
-			h.Error(httpcode.NewWrapInternalServerError(err, "request data error"), w, "UploadHandler")
+			h.Error(httpcode.NewInternalError("request data error").WithError(fmt.Errorf("next part: %w", err)), w, "UploadHandler")
+			return
 		}
 
 		fileName := part.FileName()
@@ -41,7 +42,7 @@ func (h *Handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		_, err = h.storage.Upload(sp.StorageName, sp.IsPermanent, fileName, part)
 		if err != nil {
-			h.Error(httpcode.NewWrapInternalServerError(err, fmt.Sprintf("unable to store file %s", fileName)), w, "UploadHandler")
+			h.Error(httpcode.NewInternalError(fmt.Sprintf("unable to store file %s", fileName)).WithError(fmt.Errorf("upload: %w", err)), w, "UploadHandler")
 			return
 		}
 

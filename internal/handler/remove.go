@@ -14,13 +14,13 @@ import (
 func (h *Handler) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	fileName := r.FormValue("fileName")
 	if fileName == "" {
-		h.Error(httpcode.NewBadRequest("file name was not set"), w, "RemoveHandler")
+		h.Error(httpcode.NewInvalidParams("file name was not set"), w, "RemoveHandler")
 		return
 	}
 
 	sp, err := h.requestParameters(r)
 	if err != nil {
-		h.Error(httpcode.NewWrapBadRequest(err, "invalid parameters"), w, "RemoveHandler")
+		h.Error(httpcode.NewInvalidParams(err.Error()).WithError(err), w, "RemoveHandler")
 		return
 	}
 
@@ -31,7 +31,7 @@ func (h *Handler) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	// }
 
 	if err != nil {
-		h.Error(httpcode.NewWrapInternalServerError(err, fmt.Sprintf("unable to remove file: %s from storage: %s", fileName, sp.StorageName)), w, "RemoveHandler")
+		h.Error(httpcode.NewInternalError(fmt.Sprintf("unable to remove file: %s from storage: %s", fileName, sp.StorageName)).WithError(err), w, "RemoveHandler")
 		return
 	}
 
