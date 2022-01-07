@@ -78,18 +78,11 @@ func NewHandler(a Authentificator, s Storager, l Logger, filePub micro.Event) *H
 	}
 }
 
-func (h *Handler) Error(err error, w http.ResponseWriter, context string) {
+func (h *Handler) Error(err *httperror.Error, w http.ResponseWriter, handler string) {
 	h.logger.WithError(err).
-		WithField("handler", context).
+		WithField("handler", handler).
 		Error("handler error")
-
-	var httpErr *httperror.Error
-	if errors.As(err, &httpErr) {
-		httpErr.WriteJSON(w)
-		return
-	}
-
-	http.Error(w, "unhadler error", http.StatusInternalServerError)
+	err.WriteJSON(w)
 }
 
 type storageParameters struct {
