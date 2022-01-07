@@ -10,7 +10,7 @@ import (
 	"github.com/asim/go-micro/v3"
 
 	"github.com/Mikhalevich/filesharing/pkg/ctxinfo"
-	"github.com/Mikhalevich/filesharing/pkg/httpcode"
+	"github.com/Mikhalevich/filesharing/pkg/httperror"
 	"github.com/Mikhalevich/filesharing/pkg/proto/file"
 	"github.com/Mikhalevich/filesharing/pkg/proto/types"
 	"github.com/Mikhalevich/filesharing/pkg/service"
@@ -83,7 +83,7 @@ func (h *Handler) Error(err error, w http.ResponseWriter, context string) {
 		WithField("handler", context).
 		Error("handler error")
 
-	var httpErr *httpcode.Error
+	var httpErr *httperror.Error
 	if errors.As(err, &httpErr) {
 		httpErr.WriteJSON(w)
 		return
@@ -160,7 +160,7 @@ func (h *Handler) RecoverMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if e, ok := recover().(error); ok {
-				h.Error(httpcode.NewInternalError("panic recovered").WithError(e), w, "RecoverHandler")
+				h.Error(httperror.NewInternalError("panic recovered").WithError(e), w, "RecoverHandler")
 				return
 			}
 		}()
@@ -187,7 +187,7 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p, err := h.requestParameters(r)
 		if err != nil {
-			h.Error(httpcode.NewInvalidParams("unable to get request parametes").WithError(err), w, "CheckAuthMiddleware")
+			h.Error(httperror.NewInvalidParams("request params").WithError(err), w, "CheckAuthMiddleware")
 			return
 		}
 
@@ -197,7 +197,7 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		if p.StorageName == "" {
-			h.Error(httpcode.NewInvalidParams("storage name is empty"), w, "CheckAuthMiddleware")
+			h.Error(httperror.NewInvalidParams("storage name is empty"), w, "CheckAuthMiddleware")
 			return
 		}
 
@@ -205,7 +205,7 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 		if token == "" {
 			t, err := h.auth.AuthPublicUser(p.StorageName)
 			if err != nil {
-				h.Error(httpcode.NewUnauthorized("unable to get token").WithError(err), w, "CheckAuthMiddleware")
+				h.Error(httperror.NewUnauthorized("unable to get token").WithError(err), w, "CheckAuthMiddleware")
 				return
 			}
 			token = t.GetValue()
@@ -216,7 +216,7 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			t, err := h.auth.AuthPublicUser(p.StorageName)
 			if err != nil {
-				h.Error(httpcode.NewUnauthorized("unable to get user by token").WithError(err), w, "CheckAuthMiddleware")
+				h.Error(httperror.NewUnauthorized("unable to get user by token").WithError(err), w, "CheckAuthMiddleware")
 				return
 			}
 			token = t.GetValue()
@@ -224,7 +224,7 @@ func (h *Handler) CheckAuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		if user.Name != p.StorageName {
-			h.Error(httpcode.NewNotMatchError(fmt.Sprintf("invalid request user = %s, storage = %s", user, p.StorageName)), w, "CheckAuthMiddleware")
+			h.Error(httperror.NewNotMatchError(fmt.Sprintf("invalid request user = %s, storage = %s", user, p.StorageName)), w, "CheckAuthMiddleware")
 			return
 		}
 
@@ -243,12 +243,12 @@ func (h *Handler) CreateStorageMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p, err := h.requestParameters(r)
 		if err != nil {
-			h.Error(httpcode.NewInvalidParams(err.Error()).WithError(err), w, "CreateStorageMiddleware")
+			h.Error(httperror.NewInvalidParams("request params").WithError(err), w, "CreateStorageMiddleware")
 			return
 		}
 		err = h.createIfNotExist(p.StorageName, true)
 		if err != nil {
-			h.Error(httpcode.NewInternalError("unable to create storage").WithError(err), w, "CreateStorageMiddleware")
+			h.Error(httperror.NewInternalError("unable to create storage").WithError(err), w, "CreateStorageMiddleware")
 			return
 		}
 		next.ServeHTTP(w, r)

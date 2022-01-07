@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/Mikhalevich/filesharing/pkg/httpcode"
+	"github.com/Mikhalevich/filesharing/pkg/httperror"
 	"github.com/Mikhalevich/filesharing/pkg/proto/types"
 )
 
@@ -14,18 +14,18 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	if storageName == "" {
-		h.Error(httpcode.NewInvalidParams("invalid storage name"), w, "RegisterHandler")
+		h.Error(httperror.NewInvalidParams("invalid storage name"), w, "RegisterHandler")
 		return
 	}
 
 	sp, err := h.requestParameters(r)
 	if err != nil {
-		h.Error(httpcode.NewInvalidParams(err.Error()).WithError(err), w, "RegisterHandler")
+		h.Error(httperror.NewInvalidParams("request params").WithError(err), w, "RegisterHandler")
 		return
 	}
 
 	if sp.IsPublic {
-		h.Error(httpcode.NewAlreadyExistError("storage with this name already exists"), w, "RegisterHandler")
+		h.Error(httperror.NewAlreadyExistError("storage with this name already exists"), w, "RegisterHandler")
 		return
 	}
 
@@ -36,9 +36,9 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if errors.Is(err, ErrAlreadyExist) {
-			h.Error(httpcode.NewAlreadyExistError("storage with this name already exists"), w, "RegisterHandler")
+			h.Error(httperror.NewAlreadyExistError("storage with this name already exists"), w, "RegisterHandler")
 		}
-		h.Error(httpcode.NewInternalError("registration error").WithError(err), w, "RegisterHandler")
+		h.Error(httperror.NewInternalError("registration error").WithError(err), w, "RegisterHandler")
 		return
 	}
 
@@ -47,7 +47,7 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	err = h.storage.CreateStorage(storageName, true)
 	if err != nil {
 		if !errors.Is(err, ErrAlreadyExist) {
-			h.Error(httpcode.NewInternalError("unable to create storage"), w, "RegisterHandler")
+			h.Error(httperror.NewInternalError("unable to create storage"), w, "RegisterHandler")
 		}
 		return
 	}

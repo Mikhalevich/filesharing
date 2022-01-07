@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Mikhalevich/filesharing/pkg/httpcode"
+	"github.com/Mikhalevich/filesharing/pkg/httperror"
 	"github.com/Mikhalevich/filesharing/pkg/proto/types"
 )
 
@@ -13,23 +13,23 @@ import (
 func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r)
 	if err != nil {
-		h.Error(httpcode.NewInvalidParams(err.Error()).WithError(err), w, "LoginHandler")
+		h.Error(httperror.NewInvalidParams("request params").WithError(err), w, "LoginHandler")
 		return
 	}
 
 	if sp.IsPublic {
-		h.Error(httpcode.NewInvalidParams(fmt.Sprintf("No need to login into %s", sp.StorageName)), w, "LoginHandler")
+		h.Error(httperror.NewInvalidParams(fmt.Sprintf("no need to login into %s", sp.StorageName)), w, "LoginHandler")
 		return
 	}
 
 	if sp.StorageName == "" {
-		h.Error(httpcode.NewInvalidParams("invalid storage name"), w, "LoginHandler")
+		h.Error(httperror.NewInvalidParams("invalid storage name"), w, "LoginHandler")
 		return
 	}
 
 	password := r.FormValue("password")
 	if password == "" {
-		h.Error(httpcode.NewInvalidParams("invalid password"), w, "LoginHandler")
+		h.Error(httperror.NewInvalidParams("invalid password"), w, "LoginHandler")
 		return
 	}
 
@@ -39,10 +39,10 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if errors.Is(err, ErrNotExist) {
-		h.Error(httpcode.NewNotExistError("no such storage"), w, "LoginHandler")
+		h.Error(httperror.NewNotExistError("no such storage"), w, "LoginHandler")
 		return
 	} else if errors.Is(err, ErrPwdNotMatch) {
-		h.Error(httpcode.NewNotMatchError("not match"), w, "LoginHandler")
+		h.Error(httperror.NewNotMatchError("not match"), w, "LoginHandler")
 		return
 	}
 

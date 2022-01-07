@@ -5,25 +5,25 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Mikhalevich/filesharing/pkg/httpcode"
+	"github.com/Mikhalevich/filesharing/pkg/httperror"
 )
 
 // GetFileList returns json encoded file list
 func (h *Handler) GetFileList(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r)
 	if err != nil {
-		h.Error(httpcode.NewInvalidParams(err.Error()).WithError(err), w, "GetFileList")
+		h.Error(httperror.NewInvalidParams("request params").WithError(err), w, "GetFileList")
 		return
 	}
 
 	if !h.storage.IsStorageExists(sp.StorageName) {
-		h.Error(httpcode.NewInternalError(fmt.Sprintf("storage does not exist: %s", sp.StorageName)), w, "GetFileList")
+		h.Error(httperror.NewInternalError(fmt.Sprintf("storage does not exist: %s", sp.StorageName)), w, "GetFileList")
 		return
 	}
 
 	files, err := h.storage.Files(sp.StorageName, sp.IsPermanent)
 	if err != nil {
-		h.Error(httpcode.NewInternalError(fmt.Sprintf("unable to get files from storage: %s", sp.StorageName)).WithError(err), w, "GetFileList")
+		h.Error(httperror.NewInternalError(fmt.Sprintf("unable to get files from storage: %s", sp.StorageName)).WithError(err), w, "GetFileList")
 		return
 	}
 
@@ -43,7 +43,7 @@ func (h *Handler) GetFileList(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(info); err != nil {
-		h.Error(httpcode.NewInternalError("json encoder error").WithError(err), w, "GetFileList")
+		h.Error(httperror.NewInternalError("json encoder error").WithError(err), w, "GetFileList")
 		return
 	}
 }

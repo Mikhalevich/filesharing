@@ -4,14 +4,14 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Mikhalevich/filesharing/pkg/httpcode"
+	"github.com/Mikhalevich/filesharing/pkg/httperror"
 )
 
 // IndexHTMLHandler process index.html file
 func (h *Handler) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 	sp, err := h.requestParameters(r)
 	if err != nil {
-		h.Error(httpcode.NewInternalError(err.Error()).WithError(err), w, "IndexHTMLHandler")
+		h.Error(httperror.NewInvalidParams("request params").WithError(err), w, "IndexHTMLHandler")
 		return
 	}
 
@@ -24,7 +24,7 @@ func (h *Handler) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/html")
 	_, err = io.Copy(w, pr)
 	if err != nil {
-		h.Error(httpcode.NewInternalError("can't open index.html").WithError(err), w, "IndexHTMLHandler")
+		h.Error(httperror.NewInternalError("can't open index.html").WithError(err), w, "IndexHTMLHandler")
 		return
 	}
 }

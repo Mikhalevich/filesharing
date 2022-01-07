@@ -1,4 +1,4 @@
-package httpcode
+package httperror
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ type Error struct {
 	err         error
 }
 
-func NewError(code Code, description string) *Error {
+func New(code Code, description string) *Error {
 	return &Error{
 		Code:        code,
 		Description: description,
@@ -21,6 +21,11 @@ func NewError(code Code, description string) *Error {
 
 func (e *Error) WithError(err error) *Error {
 	e.err = err
+
+	if e.Code == CodeInvalidParams {
+		e.Description = fmt.Sprintf("%s: %s", e.Description, err.Error())
+	}
+
 	return e
 }
 
@@ -43,25 +48,25 @@ func (e *Error) WriteJSON(w http.ResponseWriter) error {
 }
 
 func NewInternalError(description string) *Error {
-	return NewError(CodeInternalError, description)
+	return New(CodeInternalError, description)
 }
 
 func NewInvalidParams(description string) *Error {
-	return NewError(CodeInvalidParams, description)
+	return New(CodeInvalidParams, description)
 }
 
 func NewUnauthorized(description string) *Error {
-	return NewError(CodeUnauthorized, description)
+	return New(CodeUnauthorized, description)
 }
 
 func NewAlreadyExistError(description string) *Error {
-	return NewError(CodeAlreadyExist, description)
+	return New(CodeAlreadyExist, description)
 }
 
 func NewNotExistError(description string) *Error {
-	return NewError(CodeNotExist, description)
+	return New(CodeNotExist, description)
 }
 
 func NewNotMatchError(description string) *Error {
-	return NewError(CodeNotMatch, description)
+	return New(CodeNotMatch, description)
 }

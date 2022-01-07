@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Mikhalevich/filesharing/pkg/httpcode"
+	"github.com/Mikhalevich/filesharing/pkg/httperror"
 	"github.com/Mikhalevich/filesharing/pkg/proto/event"
 )
 
@@ -14,13 +14,13 @@ import (
 func (h *Handler) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	fileName := r.FormValue("fileName")
 	if fileName == "" {
-		h.Error(httpcode.NewInvalidParams("file name was not set"), w, "RemoveHandler")
+		h.Error(httperror.NewInvalidParams("file name was not set"), w, "RemoveHandler")
 		return
 	}
 
 	sp, err := h.requestParameters(r)
 	if err != nil {
-		h.Error(httpcode.NewInvalidParams(err.Error()).WithError(err), w, "RemoveHandler")
+		h.Error(httperror.NewInvalidParams("request params").WithError(err), w, "RemoveHandler")
 		return
 	}
 
@@ -31,7 +31,7 @@ func (h *Handler) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 	// }
 
 	if err != nil {
-		h.Error(httpcode.NewInternalError(fmt.Sprintf("unable to remove file: %s from storage: %s", fileName, sp.StorageName)).WithError(err), w, "RemoveHandler")
+		h.Error(httperror.NewInternalError(fmt.Sprintf("unable to remove file: %s from storage: %s", fileName, sp.StorageName)).WithError(err), w, "RemoveHandler")
 		return
 	}
 
