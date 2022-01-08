@@ -1,15 +1,21 @@
 version: "3"
 services:
-  web_service:
+  web:
     build: filesharing-web-service
+    labels:
+      co.elastic.logs/enabled: true
+      co.elastic.logs/json.keys_under_root: true
+      co.elastic.logs/json.overwrite_keys: true
+      co.elastic.logs/json.add_error_key: true
+      co.elastic.logs/json.expand_keys: true
     ports:
       - "8080:8080"
     environment:
-      FS_HOST: ":8080"
-      FS_SESSION_EXPIRE_PERIOD_SEC: "2592000"
-      FS_GATEWAY_HOST: "filesharing:8000"
+      FS_CONFIG_FILE: "/usr/share/config/web.yml"
     depends_on:
       - filesharing
+    volumes:
+      - ./config/service/web.yml:/usr/share/config/web.yml
   filesharing:
     build:
       context: ./

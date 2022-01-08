@@ -1,0 +1,4 @@
+service:
+  port: 8080
+gateway_host: "http://filesharing:8000"
+session_expire_period: 2592000
