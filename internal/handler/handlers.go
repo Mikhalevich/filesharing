@@ -21,14 +21,6 @@ const (
 	Title = "Duplo"
 )
 
-var (
-	// ErrAlreadyExist indicates that storage already exists
-	ErrAlreadyExist = errors.New("alredy exist")
-	ErrNotExist     = errors.New("not exist")
-	ErrPwdNotMatch  = errors.New("password not match")
-	ErrExpired      = errors.New("session is expired")
-)
-
 type Auther interface {
 	Create(user *auth.User) (*auth.Token, error)
 	Auth(user *auth.User) (*auth.Token, error)
@@ -247,8 +239,13 @@ func (h *Handler) CreateStorageMiddleware(next http.Handler) http.Handler {
 
 func (h *Handler) createIfNotExist(name string, isPermanent bool) error {
 	err := h.file.Create(name, isPermanent)
-	if errors.Is(err, ErrAlreadyExist) {
-		return nil
+	if err != nil {
+		var httpErr *httperror.Error
+		if errors.As(err, &httpErr) {
+			if httpErr.Code == httperror.CodeAlreadyExist {
+				return nil
+			}
+		}
 	}
 	return err
 }
