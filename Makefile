@@ -4,8 +4,8 @@ all: build
 build:
 	go build -mod=vendor -o ./bin/filesharing cmd/filesharing/main.go
 
-.PHONY: up
-up:
+.PHONY: run
+run:
 	./scripts/run.sh
 
 .PHONY: vendor
