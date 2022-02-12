@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Mikhalevich/filesharing/pkg/httperror"
-	"github.com/Mikhalevich/filesharing/pkg/proto/types"
+	"github.com/Mikhalevich/filesharing/pkg/proto/auth"
 )
 
 // RegisterHandler register a new storage(user)
@@ -29,7 +29,7 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.auth.CreateUser(&types.User{
+	token, err := h.auth.CreateUser(&auth.User{
 		Name:     storageName,
 		Password: password,
 	})

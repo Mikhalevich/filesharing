@@ -11,8 +11,8 @@ import (
 
 	"github.com/Mikhalevich/filesharing/pkg/ctxinfo"
 	"github.com/Mikhalevich/filesharing/pkg/httperror"
+	"github.com/Mikhalevich/filesharing/pkg/proto/auth"
 	"github.com/Mikhalevich/filesharing/pkg/proto/file"
-	"github.com/Mikhalevich/filesharing/pkg/proto/types"
 	"github.com/Mikhalevich/filesharing/pkg/service"
 )
 
@@ -31,10 +31,10 @@ var (
 
 // Authentificator provide user auth functional
 type Authentificator interface {
-	CreateUser(user *types.User) (*types.Token, error)
-	Auth(user *types.User) (*types.Token, error)
-	AuthPublicUser(name string) (*types.Token, error)
-	UserByToken(token string) (*types.User, error)
+	CreateUser(user *auth.User) (*auth.Token, error)
+	Auth(user *auth.User) (*auth.Token, error)
+	AuthPublicUser(name string) (*auth.Token, error)
+	UserByToken(token string) (*auth.User, error)
 }
 
 // Storager storage communication interface

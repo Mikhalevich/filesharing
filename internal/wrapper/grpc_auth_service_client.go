@@ -2,13 +2,10 @@ package wrapper
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/Mikhalevich/filesharing-auth-service/pkg/token"
-	"github.com/Mikhalevich/filesharing/internal/handler"
 	"github.com/Mikhalevich/filesharing/pkg/proto/auth"
-	"github.com/Mikhalevich/filesharing/pkg/proto/types"
 )
 
 type GRPCAuthServiceClient struct {
@@ -28,7 +25,7 @@ func NewGRPCAuthServiceClient(c auth.AuthService) (*GRPCAuthServiceClient, error
 	}, nil
 }
 
-func (c *GRPCAuthServiceClient) CreateUser(user *types.User) (*types.Token, error) {
+func (c *GRPCAuthServiceClient) CreateUser(user *auth.User) (*auth.Token, error) {
 	rsp, err := c.client.Create(context.Background(), &auth.CreateUserRequest{
 		User: user,
 	})
@@ -36,19 +33,10 @@ func (c *GRPCAuthServiceClient) CreateUser(user *types.User) (*types.Token, erro
 		return nil, err
 	}
 
-	switch rsp.GetStatus() {
-	case auth.Status_Ok:
-		// break
-	case auth.Status_AlreadyExist:
-		return nil, handler.ErrAlreadyExist
-	default:
-		return nil, errors.New("invalid response")
-	}
-
 	return rsp.GetToken(), nil
 }
 
-func (c *GRPCAuthServiceClient) Auth(user *types.User) (*types.Token, error) {
+func (c *GRPCAuthServiceClient) Auth(user *auth.User) (*auth.Token, error) {
 	rsp, err := c.client.Auth(context.Background(), &auth.AuthUserRequest{
 		User: user,
 	})
@@ -56,20 +44,10 @@ func (c *GRPCAuthServiceClient) Auth(user *types.User) (*types.Token, error) {
 		return nil, err
 	}
 
-	switch rsp.GetStatus() {
-	case auth.Status_Ok:
-		// break
-	case auth.Status_PwdNotMatch:
-		return nil, handler.ErrPwdNotMatch
-	case auth.Status_NotExist:
-		return nil, handler.ErrNotExist
-	default:
-		return nil, errors.New("invalid response")
-	}
 	return rsp.GetToken(), nil
 }
 
-func (c *GRPCAuthServiceClient) AuthPublicUser(name string) (*types.Token, error) {
+func (c *GRPCAuthServiceClient) AuthPublicUser(name string) (*auth.Token, error) {
 	rsp, err := c.client.AuthPublicUser(context.Background(), &auth.AuthPublicUserRequest{
 		Name: name,
 	})
@@ -79,13 +57,13 @@ func (c *GRPCAuthServiceClient) AuthPublicUser(name string) (*types.Token, error
 	return rsp.GetToken(), nil
 }
 
-func (c *GRPCAuthServiceClient) UserByToken(tokenString string) (*types.User, error) {
+func (c *GRPCAuthServiceClient) UserByToken(tokenString string) (*auth.User, error) {
 	claims, err := c.decoder.Decode(tokenString)
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.User{
+	return &auth.User{
 		Id:     claims.User.ID,
 		Name:   claims.User.Name,
 		Public: claims.User.Public,

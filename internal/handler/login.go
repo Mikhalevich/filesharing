@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Mikhalevich/filesharing/pkg/httperror"
-	"github.com/Mikhalevich/filesharing/pkg/proto/types"
+	"github.com/Mikhalevich/filesharing/pkg/proto/auth"
 )
 
 // LoginHandler sign in for the existing storage(user)
@@ -33,7 +33,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.auth.Auth(&types.User{
+	token, err := h.auth.Auth(&auth.User{
 		Name:     sp.StorageName,
 		Password: password,
 	})

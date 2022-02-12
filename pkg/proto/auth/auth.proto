@@ -4,37 +4,38 @@ package auth;
 
 option go_package = "github.com/Mikhalevich/filesharing/pkg/proto/auth";
 
-import "types/types.proto";
-
 service AuthService {
   rpc Create(CreateUserRequest) returns (CreateUserResponse) {}
   rpc Auth(AuthUserRequest) returns (AuthUserResponse) {}
   rpc AuthPublicUser(AuthPublicUserRequest) returns (AuthPublicUserResponse) {}
 }
 
-enum Status {
-    Ok = 0;
-    AlreadyExist = 1;
-    NotExist = 2;
-    PwdNotMatch = 3;
+message User {
+    int64 id = 1;
+    string name = 2;
+    string email = 3;
+    string password = 4;
+    bool public = 5;
+}
+
+message Token {
+    string value = 1;
 }
 
 message CreateUserRequest {
-    types.User user = 1;
+    User user = 1;
 }
 
 message CreateUserResponse {
-    Status status = 1;
-    types.Token token = 2;
+    Token token = 1;
 }
 
 message AuthUserRequest {
-    types.User user = 1;
+    User user = 1;
 }
 
 message AuthUserResponse {
-    Status status = 1;
-    types.Token token = 2;
+    Token token = 1;
 }
 
 message AuthPublicUserRequest {
@@ -42,5 +43,5 @@ message AuthPublicUserRequest {
 }
 
 message AuthPublicUserResponse {
-    types.Token token = 2;
+    Token token = 2;
 }
