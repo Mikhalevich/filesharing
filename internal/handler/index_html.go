@@ -17,7 +17,7 @@ func (h *Handler) IndexHTMLHandler(w http.ResponseWriter, r *http.Request) {
 
 	pr, pw := io.Pipe()
 	go func() {
-		err := h.storage.Get(sp.StorageName, sp.IsPermanent, "index.html", pw)
+		err := h.file.Get(sp.StorageName, sp.IsPermanent, "index.html", pw)
 		pw.CloseWithError(err)
 	}()
 

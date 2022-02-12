@@ -24,7 +24,7 @@ func (h *Handler) RemoveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.storage.Remove(sp.StorageName, sp.IsPermanent, fileName)
+	err = h.file.Remove(sp.StorageName, sp.IsPermanent, fileName)
 	// if err == fs.ErrNotExists {
 	// 	h.respondWithError(fileNotExistError(fileName), w, "file name doesn't exist", http.StatusBadRequest)
 	// 	return

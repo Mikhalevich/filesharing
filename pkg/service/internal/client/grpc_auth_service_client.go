@@ -1,4 +1,4 @@
-package wrapper
+package client
 
 import (
 	"context"
@@ -25,14 +25,13 @@ func NewGRPCAuthServiceClient(c auth.AuthService) (*GRPCAuthServiceClient, error
 	}, nil
 }
 
-func (c *GRPCAuthServiceClient) CreateUser(user *auth.User) (*auth.Token, error) {
+func (c *GRPCAuthServiceClient) Create(user *auth.User) (*auth.Token, error) {
 	rsp, err := c.client.Create(context.Background(), &auth.CreateUserRequest{
 		User: user,
 	})
 	if err != nil {
 		return nil, err
 	}
-
 	return rsp.GetToken(), nil
 }
 
@@ -43,7 +42,6 @@ func (c *GRPCAuthServiceClient) Auth(user *auth.User) (*auth.Token, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return rsp.GetToken(), nil
 }
 

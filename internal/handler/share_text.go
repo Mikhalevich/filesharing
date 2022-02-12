@@ -24,7 +24,7 @@ func (h *Handler) ShareTextHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.storage.Upload(sp.StorageName, sp.IsPermanent, title, strings.NewReader(body))
+	_, err = h.file.Upload(sp.StorageName, sp.IsPermanent, title, strings.NewReader(body))
 	if err != nil {
 		h.Error(httperror.NewInternalError(fmt.Sprintf("unable to store text file: %s for storage: %s", title, sp.StorageName)).WithError(err), w, "ShareTextHandler")
 	}

@@ -13,7 +13,9 @@ type Configer interface {
 }
 
 type Config struct {
-	Port int `yaml:"port"`
+	Port            int    `yaml:"port"`
+	FileServiceName string `yaml:"file_service_name"`
+	AuthServiceName string `yaml:"auth_service_name"`
 }
 
 func (c Config) Validate() error {

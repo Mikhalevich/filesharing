@@ -29,22 +29,19 @@ var (
 	ErrExpired      = errors.New("session is expired")
 )
 
-// Authentificator provide user auth functional
-type Authentificator interface {
-	CreateUser(user *auth.User) (*auth.Token, error)
+type Auther interface {
+	Create(user *auth.User) (*auth.Token, error)
 	Auth(user *auth.User) (*auth.Token, error)
 	AuthPublicUser(name string) (*auth.Token, error)
 	UserByToken(token string) (*auth.User, error)
 }
 
-// Storager storage communication interface
-type Storager interface {
+type Filer interface {
 	Files(storage string, isPermanent bool) ([]*file.File, error)
-	CreateStorage(storage string, withPermanent bool) error
+	Create(storage string, withPermanent bool) error
 	Remove(storage string, isPermanent bool, fileName string) error
 	Get(storage string, isPermanent bool, fileName string, w io.Writer) error
 	Upload(storage string, isPermanent bool, fileName string, r io.Reader) (*file.File, error)
-	IsStorageExists(storage string) bool
 }
 
 type Logger interface {
@@ -62,17 +59,17 @@ type Logger interface {
 
 // Handler represents gateway handler
 type Handler struct {
-	auth    Authentificator
-	storage Storager
+	auth    Auther
+	file    Filer
 	logger  Logger
 	filePub micro.Event
 }
 
 // NewHandler constructor for Handler
-func NewHandler(a Authentificator, s Storager, l Logger, filePub micro.Event) *Handler {
+func NewHandler(a Auther, f Filer, l Logger, filePub micro.Event) *Handler {
 	return &Handler{
 		auth:    a,
-		storage: s,
+		file:    f,
 		logger:  l,
 		filePub: filePub,
 	}
@@ -249,7 +246,7 @@ func (h *Handler) CreateStorageMiddleware(next http.Handler) http.Handler {
 }
 
 func (h *Handler) createIfNotExist(name string, isPermanent bool) error {
-	err := h.storage.CreateStorage(name, isPermanent)
+	err := h.file.Create(name, isPermanent)
 	if errors.Is(err, ErrAlreadyExist) {
 		return nil
 	}

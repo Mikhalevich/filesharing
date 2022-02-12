@@ -40,7 +40,7 @@ func (h *Handler) UploadHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		_, err = h.storage.Upload(sp.StorageName, sp.IsPermanent, fileName, part)
+		_, err = h.file.Upload(sp.StorageName, sp.IsPermanent, fileName, part)
 		if err != nil {
 			h.Error(httperror.NewInternalError(fmt.Sprintf("unable to store file %s", fileName)).WithError(fmt.Errorf("upload: %w", err)), w, "UploadHandler")
 			return

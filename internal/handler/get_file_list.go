@@ -16,12 +16,7 @@ func (h *Handler) GetFileList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.storage.IsStorageExists(sp.StorageName) {
-		h.Error(httperror.NewInternalError(fmt.Sprintf("storage does not exist: %s", sp.StorageName)), w, "GetFileList")
-		return
-	}
-
-	files, err := h.storage.Files(sp.StorageName, sp.IsPermanent)
+	files, err := h.file.Files(sp.StorageName, sp.IsPermanent)
 	if err != nil {
 		h.Error(httperror.NewInternalError(fmt.Sprintf("unable to get files from storage: %s", sp.StorageName)).WithError(err), w, "GetFileList")
 		return

@@ -1,11 +1,10 @@
-package wrapper
+package client
 
 import (
 	"context"
 	"errors"
 	"io"
 
-	"github.com/Mikhalevich/filesharing/internal/handler"
 	"github.com/Mikhalevich/filesharing/pkg/proto/file"
 )
 
@@ -32,19 +31,13 @@ func (c *GRPCFileServiceClient) Files(storage string, isPermanent bool) ([]*file
 }
 
 // CreateStorage just create storage with specified storage name and permanent folder
-func (c *GRPCFileServiceClient) CreateStorage(storage string, withPermanent bool) error {
-	r, err := c.client.CreateStorage(context.Background(), &file.CreateStorageRequest{
+func (c *GRPCFileServiceClient) Create(storage string, withPermanent bool) error {
+	if _, err := c.client.CreateStorage(context.Background(), &file.CreateStorageRequest{
 		Name:          storage,
 		WithPermanent: withPermanent,
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
-
-	if r.GetStatus() == file.StorageStatus_AlreadyExist {
-		return handler.ErrAlreadyExist
-	}
-
 	return nil
 }
 
@@ -137,16 +130,4 @@ func (c *GRPCFileServiceClient) Upload(storage string, isPermanent bool, fileNam
 	}
 
 	return f, nil
-}
-
-// IsStorageExists check specific storage for existanse
-func (c *GRPCFileServiceClient) IsStorageExists(storage string) bool {
-	r, err := c.client.IsStorageExists(context.Background(), &file.IsStorageExistsRequest{
-		Name: storage,
-	})
-	if err != nil {
-		return false
-	}
-
-	return r.GetFlag()
 }

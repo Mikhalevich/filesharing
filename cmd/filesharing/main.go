@@ -2,23 +2,17 @@ package main
 
 import (
 	"errors"
-	"fmt"
 
 	_ "github.com/asim/go-micro/plugins/broker/nats/v3"
 	"github.com/asim/go-micro/v3"
 
 	"github.com/Mikhalevich/filesharing/internal/handler"
 	"github.com/Mikhalevich/filesharing/internal/router"
-	"github.com/Mikhalevich/filesharing/internal/wrapper"
-	"github.com/Mikhalevich/filesharing/pkg/proto/auth"
-	"github.com/Mikhalevich/filesharing/pkg/proto/file"
 	"github.com/Mikhalevich/filesharing/pkg/service"
 )
 
 type config struct {
-	service.Config  `yaml:"service"`
-	FileServiceName string `yaml:"file_service_name"`
-	AuthServiceName string `yaml:"auth_service_name"`
+	service.Config `yaml:"service"`
 }
 
 func (c *config) Service() service.Config {
@@ -26,11 +20,11 @@ func (c *config) Service() service.Config {
 }
 
 func (c *config) Validate() error {
-	if c.FileServiceName == "" {
+	if c.Config.FileServiceName == "" {
 		return errors.New("file_service_name is required")
 	}
 
-	if c.AuthServiceName == "" {
+	if c.Config.AuthServiceName == "" {
 		return errors.New("auth_service_name is required")
 	}
 
@@ -40,16 +34,8 @@ func (c *config) Validate() error {
 func main() {
 	var cfg config
 	service.Run("filesharig", &cfg, func(srv micro.Service, s service.Servicer) error {
-		fsClient := file.NewFileService(cfg.FileServiceName, srv.Client())
-		authClient := auth.NewAuthService(cfg.AuthServiceName, srv.Client())
-
-		authService, err := wrapper.NewGRPCAuthServiceClient(authClient)
-		if err != nil {
-			return fmt.Errorf("creating auth service client error: %v", err)
-		}
-
 		filePub := micro.NewEvent("filesharing.file.event", srv.Client())
-		h := handler.NewHandler(authService, wrapper.NewGRPCFileServiceClient(fsClient), s.Logger(), filePub)
+		h := handler.NewHandler(s.ClientManager().Auth(), s.ClientManager().File(), s.Logger(), filePub)
 
 		router.MakeRoutes(s.Router(), true, h, s.Logger())
 

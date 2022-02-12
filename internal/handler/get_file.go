@@ -18,7 +18,7 @@ func (h *Handler) GetFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	pr, pw := io.Pipe()
 	go func() {
-		err := h.storage.Get(sp.StorageName, sp.IsPermanent, sp.FileName, pw)
+		err := h.file.Get(sp.StorageName, sp.IsPermanent, sp.FileName, pw)
 		pw.CloseWithError(err)
 	}()
 

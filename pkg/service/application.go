@@ -17,6 +17,7 @@ type Servicer interface {
 	Logger() Logger
 	Router() *mux.Router
 	AddOption(opt Option)
+	ClientManager() *ClientManager
 }
 
 func Run(name string, cfg Configer, setup func(srv micro.Service, s Servicer) error) {
@@ -41,9 +42,16 @@ func Run(name string, cfg Configer, setup func(srv micro.Service, s Servicer) er
 
 	srv.Init()
 
+	cm, err := newClientMananger(srv, serviceCfg.AuthServiceName, serviceCfg.FileServiceName)
+	if err != nil {
+		l.WithError(err).Error("create client manager")
+		return
+	}
+
 	srvOptions := service{
 		l:      l,
 		router: mux.NewRouter().StrictSlash(true),
+		cm:     cm,
 	}
 
 	srvOptions.router.Path("/metrics/").Handler(promhttp.Handler())

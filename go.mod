@@ -3,7 +3,7 @@ module github.com/Mikhalevich/filesharing
 go 1.16
 
 require (
-	github.com/Mikhalevich/filesharing-auth-service v0.0.0-20220101192854-76dd8dc14345
+	github.com/Mikhalevich/filesharing-auth-service v0.0.0-20220212204429-a7aef22026ad
 	github.com/asim/go-micro/plugins/broker/nats/v3 v3.0.0-20210913205636-4c7d2e28eb3b
 	github.com/asim/go-micro/v3 v3.6.0
 	github.com/gorilla/mux v1.8.0

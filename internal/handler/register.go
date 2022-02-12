@@ -29,7 +29,7 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.auth.CreateUser(&auth.User{
+	token, err := h.auth.Create(&auth.User{
 		Name:     storageName,
 		Password: password,
 	})
@@ -44,7 +44,7 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte(token.Value))
 
-	err = h.storage.CreateStorage(storageName, true)
+	err = h.file.Create(storageName, true)
 	if err != nil {
 		if !errors.Is(err, ErrAlreadyExist) {
 			h.Error(httperror.NewInternalError("unable to create storage"), w, "RegisterHandler")

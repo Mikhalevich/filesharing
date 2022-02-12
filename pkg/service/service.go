@@ -16,6 +16,7 @@ type service struct {
 	l           Logger
 	router      *mux.Router
 	postActions []func()
+	cm          *ClientManager
 }
 
 func (s *service) Logger() Logger {
@@ -24,6 +25,10 @@ func (s *service) Logger() Logger {
 
 func (s *service) Router() *mux.Router {
 	return s.router
+}
+
+func (s *service) ClientManager() *ClientManager {
+	return s.cm
 }
 
 func (s *service) AddOption(opt Option) {
