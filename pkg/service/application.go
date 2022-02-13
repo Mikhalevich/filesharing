@@ -18,9 +18,10 @@ type Servicer interface {
 	Router() *mux.Router
 	AddOption(opt Option)
 	ClientManager() *ClientManager
+	Publisher() *Publisher
 }
 
-func Run(name string, cfg Configer, setup func(srv micro.Service, s Servicer) error) {
+func Run(name string, cfg Configer, setup func(s Servicer) error) {
 	l := newLoggerWrapper(name)
 
 	if name == "" {
@@ -49,14 +50,15 @@ func Run(name string, cfg Configer, setup func(srv micro.Service, s Servicer) er
 	}
 
 	srvOptions := service{
-		l:      l,
-		router: mux.NewRouter().StrictSlash(true),
-		cm:     cm,
+		l:         l,
+		router:    mux.NewRouter().StrictSlash(true),
+		cm:        cm,
+		publisher: newPublisher(srv.Client()),
 	}
 
 	srvOptions.router.Path("/metrics/").Handler(promhttp.Handler())
 
-	if err := setup(srv, &srvOptions); err != nil {
+	if err := setup(&srvOptions); err != nil {
 		l.WithError(err).Error("failed to setup service")
 		return
 	}

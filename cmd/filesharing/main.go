@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	_ "github.com/asim/go-micro/plugins/broker/nats/v3"
-	"github.com/asim/go-micro/v3"
 
 	"github.com/Mikhalevich/filesharing/internal/handler"
 	"github.com/Mikhalevich/filesharing/internal/router"
@@ -33,8 +32,8 @@ func (c *config) Validate() error {
 
 func main() {
 	var cfg config
-	service.Run("filesharig", &cfg, func(srv micro.Service, s service.Servicer) error {
-		filePub := micro.NewEvent("filesharing.file.event", srv.Client())
+	service.Run("filesharig", &cfg, func(s service.Servicer) error {
+		filePub := s.Publisher().New("filesharing.file.event")
 		h := handler.NewHandler(s.ClientManager().Auth(), s.ClientManager().File(), s.Logger(), filePub)
 
 		router.MakeRoutes(s.Router(), true, h, s.Logger())
