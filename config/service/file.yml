@@ -1,0 +1,6 @@
+service:
+  port: 8002
+root_directory: "storage"
+temp_directory: ""
+permanent_directory: ""
+clean_time: "23:59"
