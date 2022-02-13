@@ -21,7 +21,7 @@ type Servicer interface {
 	Publisher() *Publisher
 }
 
-func Run(name string, cfg Configer, setup func(s Servicer) error) {
+func Run(name string, cfg Configer, setup func(srv server.Server, s Servicer) error) {
 	l := newLoggerWrapper(name)
 
 	if name == "" {
@@ -58,7 +58,7 @@ func Run(name string, cfg Configer, setup func(s Servicer) error) {
 
 	srvOptions.router.Path("/metrics/").Handler(promhttp.Handler())
 
-	if err := setup(&srvOptions); err != nil {
+	if err := setup(srv.Server(), &srvOptions); err != nil {
 		l.WithError(err).Error("failed to setup service")
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	_ "github.com/asim/go-micro/plugins/broker/nats/v3"
+	"github.com/asim/go-micro/v3/server"
 
 	"github.com/Mikhalevich/filesharing/internal/handler"
 	"github.com/Mikhalevich/filesharing/internal/router"
@@ -32,7 +33,7 @@ func (c *config) Validate() error {
 
 func main() {
 	var cfg config
-	service.Run("filesharig", &cfg, func(s service.Servicer) error {
+	service.Run("filesharig", &cfg, func(srv server.Server, s service.Servicer) error {
 		filePub := s.Publisher().New("filesharing.file.event")
 		h := handler.NewHandler(s.ClientManager().Auth(), s.ClientManager().File(), s.Logger(), filePub)
 
