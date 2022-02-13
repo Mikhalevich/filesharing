@@ -74,6 +74,15 @@ func (h *Handler) Error(err *httperror.Error, w http.ResponseWriter, handler str
 	err.WriteJSON(w)
 }
 
+func errorCode(err error) httperror.Code {
+	var httpErr *httperror.Error
+	if errors.As(err, &httpErr) {
+		return httpErr.Code
+	}
+
+	return httperror.CodeNoError
+}
+
 type storageParameters struct {
 	UserID      int64
 	StorageName string
@@ -240,11 +249,8 @@ func (h *Handler) CreateStorageMiddleware(next http.Handler) http.Handler {
 func (h *Handler) createIfNotExist(name string, isPermanent bool) error {
 	err := h.file.Create(name, isPermanent)
 	if err != nil {
-		var httpErr *httperror.Error
-		if errors.As(err, &httpErr) {
-			if httpErr.Code == httperror.CodeAlreadyExist {
-				return nil
-			}
+		if errorCode(err) == httperror.CodeAlreadyExist {
+			return nil
 		}
 	}
 	return err

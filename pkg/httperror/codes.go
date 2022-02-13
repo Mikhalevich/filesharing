@@ -3,6 +3,7 @@ package httperror
 type Code int
 
 const (
+	CodeNoError       Code = 0
 	CodeInternalError Code = 1
 	CodeInvalidParams Code = 2
 	CodeUnauthorized  Code = 3

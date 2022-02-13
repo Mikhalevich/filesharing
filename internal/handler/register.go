@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/Mikhalevich/filesharing/pkg/httperror"
@@ -35,19 +34,12 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		var httpErr *httperror.Error
-		if errors.As(err, &httpErr) {
-			switch httpErr.Code {
-			case httperror.CodeAlreadyExist:
-				h.Error(httperror.NewAlreadyExistError("storage with this name already exists"), w, "RegisterHandler")
-
-			default:
-				h.Error(httpErr, w, "RegisterHandler")
-			}
-			return
+		switch errorCode(err) {
+		case httperror.CodeAlreadyExist:
+			h.Error(httperror.NewAlreadyExistError("storage with this name already exists"), w, "RegisterHandler")
+		default:
+			h.Error(httperror.NewInternalError("create user error").WithError(err), w, "RegisterHandler")
 		}
-
-		h.Error(httperror.NewInternalError("registration error").WithError(err), w, "RegisterHandler")
 		return
 	}
 
@@ -55,19 +47,12 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = h.file.Create(storageName, true)
 	if err != nil {
-		var httpErr *httperror.Error
-		if errors.As(err, &httpErr) {
-			switch httpErr.Code {
-			case httperror.CodeAlreadyExist:
-				h.Error(httperror.NewInternalError("unable to create storage"), w, "RegisterHandler")
-
-			default:
-				h.Error(httpErr, w, "RegisterHandler")
-			}
-			return
+		switch errorCode(err) {
+		case httperror.CodeAlreadyExist:
+			h.Error(httperror.NewInternalError("unable to create storage"), w, "RegisterHandler")
+		default:
+			h.Error(httperror.NewInternalError("create file error").WithError(err), w, "RegisterHandler")
 		}
-
-		h.Error(httperror.NewInternalError("registration error").WithError(err), w, "RegisterHandler")
 		return
 	}
 

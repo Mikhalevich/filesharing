@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -39,22 +38,16 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		var httpErr *httperror.Error
-		if errors.As(err, &httpErr) {
-			switch httpErr.Code {
-			case httperror.CodeNotExist:
-				h.Error(httperror.NewNotExistError("no such storage"), w, "LoginHandler")
+		switch errorCode(err) {
+		case httperror.CodeNotExist:
+			h.Error(httperror.NewNotExistError("no such storage"), w, "LoginHandler")
 
-			case httperror.CodeNotMatch:
-				h.Error(httperror.NewNotMatchError("not match"), w, "LoginHandler")
+		case httperror.CodeNotMatch:
+			h.Error(httperror.NewNotMatchError("not match"), w, "LoginHandler")
 
-			default:
-				h.Error(httpErr, w, "LoginHandler")
-			}
-			return
+		default:
+			h.Error(httperror.NewInternalError("auth error").WithError(err), w, "LoginHandler")
 		}
-
-		h.Error(httperror.NewInternalError("auth error").WithError(err), w, "LoginHandler")
 		return
 	}
 
