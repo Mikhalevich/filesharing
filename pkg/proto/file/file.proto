@@ -8,7 +8,7 @@ service FileService {
   rpc List(ListRequest) returns (ListResponse) {}
   rpc GetFile(FileRequest) returns (stream Chunk) {}
   rpc UploadFile(stream FileUploadRequest) returns (stream File) {} 
-  rpc RemoveFile(FileRequest) returns (FileResponse) {}
+  rpc RemoveFile(FileRequest) returns (RemoveFileResponse) {}
   rpc IsStorageExists(IsStorageExistsRequest) returns (BoolResponse) {}
   rpc CreateStorage(CreateStorageRequest) returns (CreateStorageResponse) {}
 }
@@ -34,7 +34,7 @@ message FileRequest {
   string fileName = 3;
 }
 
-message FileResponse {
+message RemoveFileResponse {
 }
 
 message Chunk {

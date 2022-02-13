@@ -39,7 +39,7 @@ type FileService interface {
 	List(ctx context.Context, in *ListRequest, opts ...client.CallOption) (*ListResponse, error)
 	GetFile(ctx context.Context, in *FileRequest, opts ...client.CallOption) (FileService_GetFileService, error)
 	UploadFile(ctx context.Context, opts ...client.CallOption) (FileService_UploadFileService, error)
-	RemoveFile(ctx context.Context, in *FileRequest, opts ...client.CallOption) (*FileResponse, error)
+	RemoveFile(ctx context.Context, in *FileRequest, opts ...client.CallOption) (*RemoveFileResponse, error)
 	IsStorageExists(ctx context.Context, in *IsStorageExistsRequest, opts ...client.CallOption) (*BoolResponse, error)
 	CreateStorage(ctx context.Context, in *CreateStorageRequest, opts ...client.CallOption) (*CreateStorageResponse, error)
 }
@@ -166,9 +166,9 @@ func (x *fileServiceUploadFile) Recv() (*File, error) {
 	return m, nil
 }
 
-func (c *fileService) RemoveFile(ctx context.Context, in *FileRequest, opts ...client.CallOption) (*FileResponse, error) {
+func (c *fileService) RemoveFile(ctx context.Context, in *FileRequest, opts ...client.CallOption) (*RemoveFileResponse, error) {
 	req := c.c.NewRequest(c.name, "FileService.RemoveFile", in)
-	out := new(FileResponse)
+	out := new(RemoveFileResponse)
 	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
@@ -202,7 +202,7 @@ type FileServiceHandler interface {
 	List(context.Context, *ListRequest, *ListResponse) error
 	GetFile(context.Context, *FileRequest, FileService_GetFileStream) error
 	UploadFile(context.Context, FileService_UploadFileStream) error
-	RemoveFile(context.Context, *FileRequest, *FileResponse) error
+	RemoveFile(context.Context, *FileRequest, *RemoveFileResponse) error
 	IsStorageExists(context.Context, *IsStorageExistsRequest, *BoolResponse) error
 	CreateStorage(context.Context, *CreateStorageRequest, *CreateStorageResponse) error
 }
@@ -212,7 +212,7 @@ func RegisterFileServiceHandler(s server.Server, hdlr FileServiceHandler, opts .
 		List(ctx context.Context, in *ListRequest, out *ListResponse) error
 		GetFile(ctx context.Context, stream server.Stream) error
 		UploadFile(ctx context.Context, stream server.Stream) error
-		RemoveFile(ctx context.Context, in *FileRequest, out *FileResponse) error
+		RemoveFile(ctx context.Context, in *FileRequest, out *RemoveFileResponse) error
 		IsStorageExists(ctx context.Context, in *IsStorageExistsRequest, out *BoolResponse) error
 		CreateStorage(ctx context.Context, in *CreateStorageRequest, out *CreateStorageResponse) error
 	}
@@ -316,7 +316,7 @@ func (x *fileServiceUploadFileStream) Recv() (*FileUploadRequest, error) {
 	return m, nil
 }
 
-func (h *fileServiceHandler) RemoveFile(ctx context.Context, in *FileRequest, out *FileResponse) error {
+func (h *fileServiceHandler) RemoveFile(ctx context.Context, in *FileRequest, out *RemoveFileResponse) error {
 	return h.FileServiceHandler.RemoveFile(ctx, in, out)
 }
 
